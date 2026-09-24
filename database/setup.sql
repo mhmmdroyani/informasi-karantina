@@ -54,11 +54,3 @@ CREATE TABLE IF NOT EXISTS admin_users (
     is_active TINYINT(1) NOT NULL DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- Seed Default Settings
-INSERT INTO ekspor_settings (jenis_kegiatan, kategori, top_n, urutkan_berdasarkan, filter_mode, tanggal_awal, tanggal_akhir, tahun_awal, tahun_akhir, periode_label)
-VALUES 
-('ekspor', 'hewan', 5, 'nilai_ekspor', 'tahun', '2026-01-01', '2026-12-31', 2026, 2026, 'Semester I 2026'),
-('ekspor', 'ikan', 5, 'nilai_ekspor', 'tahun', '2026-01-01', '2026-12-31', 2026, 2026, 'Semester I 2026'),
-('ekspor', 'tumbuhan', 5, 'nilai_ekspor', 'tahun', '2026-01-01', '2026-12-31', 2026, 2026, 'Tahun 2026')
-ON DUPLICATE KEY UPDATE kategori=VALUES(kategori);
