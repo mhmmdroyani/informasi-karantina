@@ -1,0 +1,1171 @@
+/* embed/embed.css - Papan Informasi Karantina Kalimantan Selatan (versi sederhana) */
+:root {
+  --bg-board: #f7f9fb;
+  --ink: #1f2937;
+  --ink-soft: #52606d;
+  --ink-muted: #8a94a3;
+  --line: #e3e7ed;
+  --surface: #ffffff;
+  --brand-dark: #062b63;
+  --brand: #0f766e;
+  --brand-soft: #e6f2f0;
+  --accent-blue: #2563eb;
+  --accent-blue-soft: #e8f0fe;
+  --accent-amber: #b45309;
+  --accent-amber-soft: #fdf1e0;
+  --accent-slate: #475569;
+  --accent-slate-soft: #eef1f5;
+  --gold: #eab308;
+  --radius-lg: 16px;
+  --radius-md: 12px;
+  --shadow-card: 6px 7px 0 rgba(6, 43, 99, 0.14), 0 6px 16px rgba(15, 23, 42, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  background: var(--bg-board);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  line-height: 1.5;
+}
+
+body {
+  padding: 0;
+}
+
+.board-container {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+/* ==========================================================================
+   TOP BAR
+   ========================================================================== */
+.board-topbar {
+  background: var(--brand-dark);
+  margin: 0;
+  padding: 12px 24px;
+}
+
+.board-topbar-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.barantin-logo-img {
+  height: 48px;
+  width: auto;
+}
+
+.header-unit-text {
+  line-height: 1.3;
+}
+
+.header-unit-text .hut-karantina {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: 0.2px;
+  display: block;
+}
+
+.header-unit-text .hut-kalsel {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  display: block;
+}
+
+.board-login-btn {
+  background: var(--gold);
+  color: #1f2937;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 8px 20px;
+  border-radius: 8px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.board-login-btn:hover {
+  filter: brightness(1.06);
+}
+
+.board-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.board-compare-btn {
+  color: var(--brand-dark);
+  border: 1px solid var(--gold);
+  background: var(--gold);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  align-self: center;
+}
+
+.board-compare-btn:hover {
+  filter: brightness(1.05);
+}
+
+/* ==========================================================================
+   HERO
+   ========================================================================== */
+.board-hero {
+  background: var(--brand-dark);
+  border-radius: 12px;
+  padding: 16px 32px 18px;
+  margin: 18px 0;
+  text-align: center;
+  position: relative;
+}
+
+.board-hero-title {
+  font-size: 29px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 0.4px;
+  margin: 0 0 8px;
+  text-transform: uppercase;
+}
+
+.board-hero-desc {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.72);
+  line-height: 1.6;
+  max-width: 820px;
+  margin: 0 auto 10px;
+}
+
+.board-hero-desc strong {
+  color: var(--gold);
+}
+
+.board-periode-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 4px 0 20px;
+}
+
+.board-periode-badge {
+  display: inline-block;
+  background: var(--gold);
+  color: var(--brand-dark);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  padding: 6px 18px;
+  border-radius: 10px;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.22);
+}
+
+.board-download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font: inherit;
+  cursor: pointer;
+  position: absolute;
+  top: 18px;
+  right: 24px;
+}
+
+.board-download-btn:hover {
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.board-hero-controls {
+  background: var(--surface);
+  border-radius: 14px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+  text-align: left;
+}
+
+/* ==========================================================================
+   KARTU RINGKASAN (KPI)
+   ========================================================================== */
+.kpi-row-canva {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin: 18px 0;
+}
+
+.kpi-card-canva {
+  background: var(--surface);
+  border: 2px dashed #4b5563;
+  border-radius: 10px;
+  padding: 17px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: var(--shadow-card);
+}
+
+.kpi-icon-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.kpi-icon-circle.blue   { background: var(--accent-blue-soft); color: var(--accent-blue); }
+.kpi-icon-circle.teal   { background: var(--brand-soft); color: var(--brand); }
+.kpi-icon-circle.lime   { background: var(--accent-slate-soft); color: var(--accent-slate); }
+.kpi-icon-circle.orange { background: var(--accent-amber-soft); color: var(--accent-amber); }
+
+.kpi-content-canva {
+  flex: 1;
+  min-width: 0;
+}
+
+.kpi-title-canva {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink);
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+
+.kpi-number-canva {
+  font-size: 27px;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--ink);
+}
+
+.kpi-unit-canva {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  display: block;
+}
+
+.kpi-subtext-canva {
+  font-size: 11px;
+  color: var(--ink-muted);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kpi-volume-secondary {
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: normal;
+}
+
+/* ==========================================================================
+   PANEL RINGKASAN
+   ========================================================================== */
+.panels-row-canva {
+  display: grid;
+  grid-template-columns: 1fr 1.15fr 1.05fr;
+  gap: 18px;
+}
+
+.panel-canva {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid #d7dee8;
+  border-radius: 8px;
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+.panel-header-canva {
+  padding: 11px 14px;
+  background: var(--brand-dark);
+  border-bottom: 0;
+}
+
+.panel-header-canva h3 {
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 0.2px;
+  margin: 0;
+}
+
+.panel-body-canva {
+  padding: 16px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 330px;
+}
+
+/* ----------------- Panel 1: Donut & sorotan ----------------- */
+.donut-layout {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 14px;
+  flex: 1;
+}
+
+.donut-chart-box {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  flex-shrink: 0;
+}
+
+.donut-center-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+}
+
+.donut-center-overlay .dco-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  display: block;
+}
+
+.donut-center-overlay .dco-val {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  display: block;
+  white-space: nowrap;
+}
+
+.donut-center-overlay .dco-unit {
+  font-size: 10px;
+  color: var(--ink-muted);
+  display: block;
+}
+
+.donut-legend-list {
+  flex: 1;
+  max-width: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.legend-item-canva {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.legend-dot-canva {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+.legend-item-info {
+  flex: 1;
+}
+
+.legend-com-name {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.legend-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.legend-val-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--brand);
+}
+
+.legend-pct {
+  font-size: 11px;
+  color: var(--ink-muted);
+}
+
+.panel-highlight-box {
+  background: var(--brand-soft);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.ph-icon-box {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--brand);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ph-text {
+  font-size: 12px;
+  color: var(--ink-soft);
+  line-height: 1.4;
+}
+
+.ph-text strong {
+  color: var(--ink);
+}
+
+/* ----------------- Panel 2: Top komoditas ----------------- */
+.bar-chart-container-canva {
+  flex: 1;
+  position: relative;
+  min-height: 210px;
+  width: 100%;
+}
+
+.top-bar-items {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.top-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.tbr-badge {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent-slate-soft);
+  color: var(--accent-slate);
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.tbr-label {
+  flex: 1;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tbr-val {
+  font-weight: 600;
+  color: var(--brand);
+}
+
+.tbr-pct {
+  font-size: 11px;
+  color: var(--ink-muted);
+  width: 34px;
+  text-align: right;
+}
+
+/* ----------------- Panel 3: Daftar tujuan ----------------- */
+.map-canvas-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.dest-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dest-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #f8fafb;
+}
+
+.dest-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dest-flag {
+  width: 28px;
+  height: 20px;
+  object-fit: cover;
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.12);
+  flex-shrink: 0;
+}
+
+.dest-name {
+  flex: 1;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dest-val {
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.board-empty-state {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 48px 24px;
+  text-align: center;
+  margin-top: 16px;
+}
+
+.board-empty-state h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+
+.board-empty-state p {
+  font-size: 13px;
+  color: var(--ink-soft);
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.board-comparison {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  margin-top: 16px;
+  box-shadow: var(--shadow-card);
+}
+
+.board-comparison-header,
+.board-comparison-filters {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.board-comparison-header h2 {
+  margin: 0;
+  padding-left: 12px;
+  border-left: 4px solid var(--gold);
+  font-size: 20px;
+  color: var(--brand-dark);
+}
+
+.board-comparison-header p {
+  margin: 6px 0 0 16px;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.board-comparison-close {
+  color: var(--brand);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.board-comparison-filters {
+  justify-content: flex-start;
+  margin-top: 18px;
+  padding: 14px 16px;
+  border: 1px solid #d8e4f1;
+  border-radius: 10px;
+  background: #f5f8fc;
+}
+
+.board-comparison-filters label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.board-comparison-filters select {
+  min-width: 190px;
+  padding: 9px 12px;
+  border: 1px solid #cbd8e6;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.board-comparison-filters select:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+}
+
+.board-comparison-vs {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--brand-dark);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.board-comparison-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.board-comparison-card {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-height: 150px;
+  padding: 17px 16px;
+  background: var(--surface);
+  border: 2px dashed #64748b;
+  border-radius: 10px;
+  box-shadow: var(--shadow-card);
+  border-top: 3px solid var(--brand);
+}
+
+.board-comparison-card:nth-child(2) { border-top-color: var(--accent-blue); }
+.board-comparison-card:nth-child(3) { border-top-color: var(--accent-slate); }
+.board-comparison-card:nth-child(4) { border-top-color: var(--accent-amber); }
+
+.board-comparison-card span,
+.board-comparison-card small {
+  color: var(--ink-muted);
+  font-size: 12px;
+}
+
+.board-comparison-card > span {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.2px;
+}
+
+.comparison-values {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 7px;
+}
+
+.comparison-values > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding-left: 9px;
+  border-left: 3px solid #dbe4ed;
+}
+
+.comparison-values > div:last-child {
+  border-left-color: var(--brand);
+}
+
+.comparison-values small {
+  color: var(--ink-soft);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.comparison-values strong {
+  color: var(--ink);
+  font-size: 19px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.board-comparison-card em {
+  color: var(--brand);
+  margin-top: auto;
+  padding-top: 8px;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.board-comparison-card em.is-down {
+  color: #b91c1c;
+}
+
+.board-comparison-chart {
+  margin-top: 18px;
+  padding: 18px 0 0;
+  border-top: 1px solid var(--line);
+}
+
+.board-comparison-chart h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  color: var(--brand-dark);
+  font-size: 14px;
+}
+
+.board-comparison-chart h3::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--brand);
+}
+
+.comparison-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.comparison-chart-card {
+  padding: 12px;
+  background: #fbfcfe;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: inset 0 2px 0 rgba(6, 43, 99, 0.04);
+}
+
+.comparison-chart-card > span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.comparison-chart-canvas {
+  height: 190px;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .kpi-row-canva {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .panels-row-canva {
+    grid-template-columns: 1fr;
+  }
+  .board-topbar-inner {
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+  }
+  .board-topbar-actions {
+    justify-content: center;
+  }
+  .board-hero {
+    padding: 28px 24px;
+  }
+  .board-download-btn {
+    position: static;
+  }
+  .board-comparison-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .comparison-chart-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .kpi-row-canva {
+    grid-template-columns: 1fr;
+  }
+  .board-hero-title {
+    font-size: 22px;
+  }
+  .board-periode-badge {
+    font-size: 13px;
+    padding: 7px 18px;
+  }
+  .board-comparison-grid {
+    grid-template-columns: 1fr;
+  }
+  .board-comparison-filters label {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 700px) {
+  .board-topbar {
+    padding: 10px 12px;
+  }
+
+  .board-topbar-inner {
+    align-items: flex-start;
+  }
+
+  .header-left {
+    min-width: 0;
+  }
+
+  .barantin-logo-img {
+    height: 40px;
+  }
+
+  .header-unit-text .hut-karantina {
+    font-size: 12px;
+  }
+
+  .header-unit-text .hut-kalsel {
+    font-size: 10px;
+  }
+
+  .board-topbar-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .board-login-btn {
+    padding: 7px 14px;
+    font-size: 12px;
+  }
+
+  .board-container {
+    width: 100%;
+    padding: 0 10px;
+  }
+
+  .board-hero {
+    margin: 10px 0 14px;
+    padding: 22px 12px 14px;
+    border-radius: 10px;
+  }
+
+  .board-hero-title {
+    font-size: clamp(20px, 6vw, 27px);
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+  }
+
+  .board-hero-desc {
+    font-size: 11px;
+    line-height: 1.45;
+  }
+
+  .board-hero-actions {
+    position: static;
+    display: flex;
+    justify-content: center;
+    margin: 8px 0 12px;
+  }
+
+  .board-download-btn {
+    padding: 7px 11px;
+    font-size: 12px;
+  }
+
+  .board-periode-wrap {
+    margin: 8px 0 14px;
+  }
+
+  .board-periode-badge {
+    max-width: 100%;
+    padding: 6px 12px;
+    font-size: 11px;
+    overflow-wrap: anywhere;
+  }
+
+  .board-hero-controls {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .hero-select-field {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .hero-select-field select,
+  .board-compare-btn {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .board-compare-btn {
+    text-align: center;
+  }
+
+  .board-comparison,
+  .board-empty-state {
+    padding: 14px;
+    margin-top: 12px;
+  }
+
+  .board-comparison-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .board-comparison-header h2 {
+    font-size: 16px;
+  }
+
+  .board-comparison-filters {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .board-comparison-filters label,
+  .board-comparison-filters select {
+    width: 100%;
+  }
+
+  .board-comparison-vs {
+    align-self: center;
+  }
+
+  .comparison-values strong {
+    font-size: 14px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .comparison-chart-canvas {
+    height: 170px;
+  }
+}
+
+/* ==========================================================================
+   FILTER PADA HERO
+   ========================================================================== */
+.hero-select-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hero-filter-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.hero-select-field select {
+  min-width: 150px;
+  padding: 8px 30px 8px 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.hero-select-field select:focus {
+  outline: none;
+  border-color: var(--brand);
+}
+
+.hero-year-badge {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--brand);
+  background: var(--brand-soft);
+  padding: 6px 14px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
+@media print {
+  @page {
+    size: 16in 9in;
+    margin: 0;
+  }
+
+  html, body {
+    background: #ffffff;
+    padding: 0;
+    width: 100%;
+    min-height: 100%;
+  }
+
+  .board-topbar {
+    margin: 0;
+    padding: 10px 24px;
+    border-radius: 0;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .board-login-btn,
+  .board-compare-btn,
+  .board-hero-controls,
+  .board-download-btn {
+    display: none !important;
+  }
+
+  .board-container {
+    max-width: none;
+  }
+
+  .board-hero {
+    border-radius: 0;
+    margin: 0;
+    padding: 10px 28px 12px;
+    text-align: center;
+  }
+
+  .board-hero-title {
+    margin: 0 0 5px;
+    font-size: 25px;
+  }
+
+  .board-hero-desc {
+    display: none;
+  }
+
+  .board-periode-wrap {
+    margin: 0;
+  }
+
+  .board-periode-badge {
+    padding: 5px 18px;
+    font-size: 12px;
+  }
+
+  .board-hero,
+  .kpi-card-canva,
+  .panel-canva,
+  .board-periode-badge,
+  .panel-highlight-box {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .board-hero {
+    padding: 24px 28px;
+    margin-bottom: 10px;
+  }
+
+  .board-hero-title {
+    font-size: 24px;
+  }
+
+  .kpi-row-canva,
+  .panels-row-canva {
+    gap: 10px;
+  }
+
+  .kpi-row-canva {
+    grid-template-columns: repeat(4, 1fr);
+    margin: 10px 18px;
+  }
+
+  .panels-row-canva {
+    grid-template-columns: 1fr 1.15fr 1.05fr;
+    margin: 0 18px 18px;
+  }
+
+  .kpi-card-canva,
+  .panel-canva {
+    box-shadow: none;
+  }
+
+  .panel-body-canva {
+    min-height: 300px;
+  }
+
+  .donut-chart-box {
+    width: 155px;
+    height: 155px;
+  }
+
+  .bar-chart-container-canva {
+    min-height: 230px;
+  }
+}
+
