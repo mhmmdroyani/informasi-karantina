@@ -258,11 +258,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                         <div>
                             <label class="field-label">Sampai Bulan</label>
-                            <input type="month" name="bln_akhir" id="inputBlnAkhir" value="<?= date('Y-06') ?>" onchange="syncPeriodeCode()" class="field-input">
+                            <input type="month" name="bln_akhir" id="inputBlnAkhir" value="<?= date('Y-12') ?>" onchange="syncPeriodeCode()" class="field-input">
                         </div>
                     </div>
 
-                    <input type="hidden" name="periode" id="inputKodePeriode" value="<?= date('Y-01') ?>_<?= date('Y-06') ?>">
+                    <input type="hidden" name="periode" id="inputKodePeriode" value="<?= date('Y-01') ?>_<?= date('Y-12') ?>">
                     <input type="hidden" name="cal_mode" value="bulan">
 
                     <p class="field-hint">Data yang diunggah akan otomatis memiliki tanggal mulai dan selesai sesuai bulan yang dipilih.</p>

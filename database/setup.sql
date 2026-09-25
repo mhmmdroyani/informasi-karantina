@@ -1,6 +1,6 @@
 -- Database & Skema Tabel untuk Dashboard Ekspor Komoditas Karantina
-CREATE DATABASE IF NOT EXISTS db_ekspor_karantina CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE db_ekspor_karantina;
+CREATE DATABASE IF NOT EXISTS if0_42997399_db_ekspor_karantina CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE if0_42997399_db_ekspor_karantina;
 
 -- Tabel Transaksi Ekspor Komoditas
 CREATE TABLE IF NOT EXISTS ekspor_komoditas (

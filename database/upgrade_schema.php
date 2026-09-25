@@ -89,21 +89,6 @@ try {
         }
     }
 
-    // 4. Seed default settings untuk seluruh jenis kegiatan dan kategori
-    $kegiatans = ['ekspor', 'impor', 'domestik_keluar', 'domestik_masuk'];
-    $kategoris = ['hewan', 'ikan', 'tumbuhan'];
-
-    $stmtSet = $pdo->prepare("INSERT INTO ekspor_settings (jenis_kegiatan, kategori, top_n, urutkan_berdasarkan, periode_label) 
-        VALUES (?, ?, 5, 'nilai_ekspor', 'JANUARI - JUNI 2026') 
-        ON DUPLICATE KEY UPDATE updated_at = NOW()");
-
-    foreach ($kegiatans as $keg) {
-        foreach ($kategoris as $kat) {
-            $stmtSet->execute([$keg, $kat]);
-        }
-    }
-    echo " - Seed pengaturan 4 jenis kegiatan x 3 kategori selesai.\n";
-
     echo "MIGRASI BERHASIL!\n";
 } catch (Exception $e) {
     echo "MIGRASI GAGAL: " . $e->getMessage() . "\n";

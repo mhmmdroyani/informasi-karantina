@@ -37,27 +37,13 @@ try {
     $adminHash = password_hash('admin123', PASSWORD_DEFAULT);
     $adminStmt = $pdo->prepare(
         "INSERT INTO admin_users (username, password, nama, role, is_active)
-         VALUES (?, ?, ?, 'admin', 1)"
+        VALUES (?, ?, ?, 'admin', 1)"
     );
     $adminStmt->execute(['admin', $adminHash, 'Administrator BKHIT']);
-
-    $settingsStmt = $pdo->prepare(
-        "INSERT INTO ekspor_settings
-            (jenis_kegiatan, kategori, top_n, urutkan_berdasarkan, filter_mode,
-             tanggal_awal, tanggal_akhir, tahun_awal, tahun_akhir, periode_label)
-         VALUES (?, ?, 5, 'nilai_ekspor', 'tahun', '2026-01-01', '2026-12-31', 2026, 2026, 'TAHUN 2026')"
-    );
-
-    foreach (['ekspor', 'impor', 'domestik_keluar', 'domestik_masuk'] as $jenis) {
-        foreach (['hewan', 'ikan', 'tumbuhan'] as $kategori) {
-            $settingsStmt->execute([$jenis, $kategori]);
-        }
-    }
 
     echo "Reset database berhasil.\n";
     echo "Database: {$database}\n";
     echo "Admin: admin / admin123\n";
-    echo "Pengaturan board dibuat: 12 kombinasi kegiatan dan kategori.\n";
 } catch (Throwable $e) {
     fwrite(STDERR, "Reset database gagal: {$e->getMessage()}\n");
     exit(1);
