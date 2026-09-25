@@ -54,3 +54,6 @@ CREATE TABLE IF NOT EXISTS admin_users (
     is_active TINYINT(1) NOT NULL DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+NSERT INTO `admin_users` (`id`, `username`, `password`, `nama`, `role`, `is_active`, `created_at`) VALUES
+(1, 'admin', '$2y$12$5pS.7z/e0Q7eilq4nDAwmO05o9yij2fhH3QrC2Yk9f47z6QjON9aS', 'Administrator BKHIT', 'admin', 1, '2026-09-23 14:09:42');
