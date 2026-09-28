@@ -1,0 +1,26 @@
+# Composer
+/vendor/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Upload sementara
+uploads/*
+!uploads/.gitkeep
