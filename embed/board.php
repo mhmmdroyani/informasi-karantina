@@ -313,7 +313,7 @@ if ($periodeFilter !== '') $urlParamsExtra .= '&periode=' . urlencode($periodeFi
 
     <!-- Hero -->
     <section class="board-hero">
-        <h1 class="board-hero-title"><?= $compareMode ? 'Perbandingan Komoditas' : 'Top ' . ($topN > 0 ? $topN : 'Semua') . ' Komoditas -TEST GITHUB-' ?> <?= $labelKategori ?> — <?= $labelKegiatan ?></h1>
+        <h1 class="board-hero-title"><?= $compareMode ? 'Perbandingan Komoditas' : 'Top ' . ($topN > 0 ? $topN : 'Semua') . ' Komoditas' ?> <?= $labelKategori ?> — <?= $labelKegiatan ?></h1>
         <p class="board-hero-desc">
             Ringkasan lalu lintas komoditas karantina yang dipublikasikan oleh Balai Karantina Hewan, Ikan, dan Tumbuhan Kalimantan Selatan.
         </p>
