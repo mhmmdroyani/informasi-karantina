@@ -1,9 +1,9 @@
 <?php
 // config/koneksi.php
-$dbHost = '127.0.0.1';
-$dbName = 'db_ekspor_karantina';
-$dbUser = 'root';
-$dbPass = '';
+$dbHost = 'sql209.infinityfree.com';
+$dbName = 'if0_42997399_db_ekspor_karantina';
+$dbUser = 'if0_42997399';
+$dbPass = 'bkhitkalsel2026';
 
 try {
     $pdo = new PDO("mysql:host={$dbHost};dbname={$dbName};charset=utf8mb4", $dbUser, $dbPass, [

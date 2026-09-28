@@ -1,8 +1,8 @@
 <?php
 // database/upgrade_schema.php
-$host = '127.0.0.1';
-$user = 'root';
-$pass = '';
+$host = 'sql209.infinityfree.com';
+$user = 'if0_42997399';
+$pass = 'bkhitkalsel2026';
 
 try {
     $pdo = new PDO("mysql:host={$host};dbname=db_ekspor_karantina;charset=utf8mb4", $user, $pass);
@@ -88,21 +88,6 @@ try {
             echo " - Kolom {$column} berhasil ditambahkan ke admin_users.\n";
         }
     }
-
-    // 4. Seed default settings untuk seluruh jenis kegiatan dan kategori
-    $kegiatans = ['ekspor', 'impor', 'domestik_keluar', 'domestik_masuk'];
-    $kategoris = ['hewan', 'ikan', 'tumbuhan'];
-
-    $stmtSet = $pdo->prepare("INSERT INTO ekspor_settings (jenis_kegiatan, kategori, top_n, urutkan_berdasarkan, periode_label) 
-        VALUES (?, ?, 5, 'nilai_ekspor', 'JANUARI - JUNI 2026') 
-        ON DUPLICATE KEY UPDATE updated_at = NOW()");
-
-    foreach ($kegiatans as $keg) {
-        foreach ($kategoris as $kat) {
-            $stmtSet->execute([$keg, $kat]);
-        }
-    }
-    echo " - Seed pengaturan 4 jenis kegiatan x 3 kategori selesai.\n";
 
     echo "MIGRASI BERHASIL!\n";
 } catch (Exception $e) {
