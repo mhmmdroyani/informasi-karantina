@@ -330,7 +330,7 @@ if ($periodeFilter !== '') $urlParamsExtra .= '&periode=' . urlencode($periodeFi
         <?php if ($showControls): ?>
         <div class="board-hero-controls">
             <label class="hero-select-field">
-                <span class="hero-filter-label">Lalu Lintas</span>
+                class="hero-filter-label">Lalu Lintas
                 <select name="jenis" id="selectJenis" onchange="window.location.href = this.value" aria-label="Pilih lalu lintas">
                     <option value="?jenis=domestik_masuk&kategori=<?= $kategori ?><?= $urlParamsExtra ?>" <?= $jenis === 'domestik_masuk' ? 'selected' : '' ?>>Domestik Masuk</option>
                     <option value="?jenis=domestik_keluar&kategori=<?= $kategori ?><?= $urlParamsExtra ?>" <?= $jenis === 'domestik_keluar' ? 'selected' : '' ?>>Domestik Keluar</option>
@@ -340,7 +340,7 @@ if ($periodeFilter !== '') $urlParamsExtra .= '&periode=' . urlencode($periodeFi
             </label>
 
             <label class="hero-select-field">
-                <span class="hero-filter-label">Komoditas</span>
+                class="hero-filter-label">Komoditas
                 <select name="kategori" id="selectKategori" onchange="window.location.href = this.value" aria-label="Pilih komoditas">
                     <option value="?jenis=<?= $jenis ?>&kategori=hewan<?= $urlParamsExtra ?>" <?= $kategori === 'hewan' ? 'selected' : '' ?>>Hewan</option>
                     <option value="?jenis=<?= $jenis ?>&kategori=ikan<?= $urlParamsExtra ?>" <?= $kategori === 'ikan' ? 'selected' : '' ?>>Ikan</option>
@@ -350,7 +350,7 @@ if ($periodeFilter !== '') $urlParamsExtra .= '&periode=' . urlencode($periodeFi
 
             <?php if (!$comparisonPage): ?>
             <label class="hero-select-field">
-                <span class="hero-filter-label">Periode Data</span>
+                class="hero-filter-label">Periode Data
                 <select name="periode" id="selectPeriode" onchange="window.location.href = this.value" aria-label="Pilih periode data">
                     <option value="?jenis=<?= $jenis ?>&kategori=<?= $kategori ?><?= $urlParamsBase ?>" <?= $periodeFilter === '' ? 'selected' : '' ?> disabled><?= $compareMode ? htmlspecialchars($comparisonLabelA . ' vs ' . $comparisonLabelB) : 'Pilih periode data' ?></option>
                     <?php foreach ($periodeOptions as $periodeOption): ?>
