@@ -272,15 +272,15 @@ body {
 }
 
 .kpi-unit-canva {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
-  color: var(--ink-muted);
+  color: var(--ink);
   display: block;
 }
 
 .kpi-subtext-canva {
-  font-size: 11px;
-  color: var(--ink-muted);
+  font-size: 14px;
+  color: var(--ink);
   margin-top: 2px;
   white-space: nowrap;
   overflow: hidden;
@@ -289,7 +289,7 @@ body {
 
 .kpi-volume-secondary {
   margin-top: 2px;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--ink);
   white-space: normal;
