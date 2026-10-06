@@ -819,23 +819,23 @@ if ($periodeFilter !== '') $urlParamsExtra .= '&periode=' . urlencode($periodeFi
 
             <div class="social-list">
 
-                <a href="#" class="social-btn" aria-label="Instagram">
+                <a href="https://www.instagram.com/karantinakalimantanselatan/" class="social-btn" aria-label="Instagram">
                     <i class="fa-brands fa-instagram"></i>
                 </a>
 
-                <a href="#" class="social-btn" aria-label="Facebook">
+                <a href="https://www.facebook.com/karantinakalimantanselatan/" class="social-btn" aria-label="Facebook">
                     <i class="fa-brands fa-facebook-f"></i>
                 </a>
 
-                <a href="#" class="social-btn" aria-label="X">
+                <a href="https://x.com/karantinakalsel" class="social-btn" aria-label="X">
                     <i class="fa-brands fa-x-twitter"></i>
                 </a>
 
-                <a href="#" class="social-btn" aria-label="TikTok">
+                <a href="https://www.tiktok.com/@karantinakalsel" class="social-btn" aria-label="TikTok">
                     <i class="fa-brands fa-tiktok"></i>
                 </a>
 
-                <a href="#" class="social-btn" aria-label="YouTube">
+                <a href="https://www.youtube.com/@karantinakalimantanselatan" class="social-btn" aria-label="YouTube">
                     <i class="fa-brands fa-youtube"></i>
                 </a>
 
@@ -855,9 +855,9 @@ if ($periodeFilter !== '') $urlParamsExtra .= '&periode=' . urlencode($periodeFi
             </p>
 
             <p>
-                Dibuat dengan
-                <span class="heart">♥</span>
-                untuk Indonesia
+                Created By
+                <a href="https://www.instagram.com/mhmmdrroyani/">@mhmmdrroyani</a> 
+                & Novia Aulianty
             </p>
 
         </div>
