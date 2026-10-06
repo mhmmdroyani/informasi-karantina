@@ -271,9 +271,10 @@ $colors = ['#0f766e', '#2563eb', '#b45309', '#64748b', '#7c3aed'];
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $labelKegiatan ?> Komoditas Karantina <?= $labelKategori ?> - Balai Karantina Kalsel</title>
+    <title><?= $labelKegiatan ?> Komoditas Karantina <?= $labelKategori ?> - Balai Karantina Kalimantan Selatan</title>
     <link rel="stylesheet" href="<?= $assetPath ?>embed.css?v=<?= @filemtime(__DIR__ . '/embed.css') ?: time() ?>">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet"href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 </head>
 <body>
 
@@ -754,6 +755,115 @@ if ($periodeFilter !== '') $urlParamsExtra .= '&periode=' . urlencode($periodeFi
     <?php endif; ?>
 
 </div>
+
+<footer class="footer-komoditas">
+    <div class="footer-container">
+
+        <!-- Kolom 1: Identitas -->
+        <div class="footer-brand">
+            <div class="brand-header">
+                <div class="brand-logo">
+                    <img src="embed/logo-barantin.png" alt="Logo Karantina">
+                </div>
+
+                <div>
+                    <h2>Informasi Komoditas</h2>
+                    <span>Balai Karantina Kalimantan Selatan</span>
+                </div>
+            </div>
+
+            <p>
+                Penyajian data dan informasi komoditas ekspor, impor,
+                dan lalu lintas karantina secara akurat, transparan,
+                dan mudah diakses.
+            </p>
+        </div>
+
+
+        <!-- Kolom 2: Kontak -->
+        <div class="footer-contact">
+            <h3>KONTAK</h3>
+
+            <div class="footer-line"></div>
+
+            <a href="mailto:karantinakalsel@karantinaindonesia.go.id"
+               class="contact-item">
+
+                <div class="contact-icon">
+                    <i class="fa-regular fa-envelope"></i>
+                </div>
+
+                <span>
+                    karantinakalsel@karantinaindonesia.go.id
+                </span>
+            </a>
+
+            <a href="https://wa.me/628115100909"
+               target="_blank"
+               class="contact-item">
+
+                <div class="contact-icon">
+                    <i class="fa-brands fa-whatsapp"></i>
+                </div>
+
+                <span>+62 811-5100-909</span>
+            </a>
+        </div>
+
+
+        <!-- Kolom 3: Social Media -->
+        <div class="footer-social">
+            <h3>IKUTI KAMI</h3>
+
+            <div class="footer-line"></div>
+
+            <div class="social-list">
+
+                <a href="#" class="social-btn" aria-label="Instagram">
+                    <i class="fa-brands fa-instagram"></i>
+                </a>
+
+                <a href="#" class="social-btn" aria-label="Facebook">
+                    <i class="fa-brands fa-facebook-f"></i>
+                </a>
+
+                <a href="#" class="social-btn" aria-label="X">
+                    <i class="fa-brands fa-x-twitter"></i>
+                </a>
+
+                <a href="#" class="social-btn" aria-label="TikTok">
+                    <i class="fa-brands fa-tiktok"></i>
+                </a>
+
+                <a href="#" class="social-btn" aria-label="YouTube">
+                    <i class="fa-brands fa-youtube"></i>
+                </a>
+
+            </div>
+        </div>
+
+    </div>
+
+
+    <!-- Footer Bottom -->
+    <div class="footer-bottom">
+        <div class="footer-bottom-container">
+
+            <p>
+                © 2026 Balai Karantina Hewan Ikan dan Tumbuhan
+                Kalimantan Selatan. Semua hak dilindungi.
+            </p>
+
+            <p>
+                Dibuat dengan
+                <span class="heart">♥</span>
+                untuk Indonesia
+            </p>
+
+        </div>
+    </div>
+
+</footer>
 
 <script>
 function openPrintBoard() {
