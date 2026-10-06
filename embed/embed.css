@@ -307,8 +307,7 @@ body {
   flex-direction: column;
   background: var(--surface);
   border: 1px solid #d7dee8;
-  border-radius: 8px;
-  box-shadow: var(--shadow-card);
+  border-radius: 8px;;
   overflow: hidden;
 }
 
