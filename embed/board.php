@@ -271,7 +271,7 @@ $colors = ['#0f766e', '#2563eb', '#b45309', '#64748b', '#7c3aed'];
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $labelKegiatan ?> Komoditas Karantina <?= $labelKategori ?> - BKHIT Kalsel</title>
+    <title><?= $labelKegiatan ?> Komoditas Karantina <?= $labelKategori ?> - Balai Karantina Kalsel</title>
     <link rel="stylesheet" href="<?= $assetPath ?>embed.css?v=<?= @filemtime(__DIR__ . '/embed.css') ?: time() ?>">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -297,7 +297,7 @@ if ($periodeFilter !== '') $urlParamsExtra .= '&periode=' . urlencode($periodeFi
             <img src="<?= $assetPath ?>logo-barantin.png" alt="Logo Barantin" class="barantin-logo-img">
             <div class="header-unit-text">
                 <span class="hut-karantina">Badan Karantina Indonesia</span>
-                <span class="hut-kalsel">BKHIT Kalimantan Selatan</span>
+                <span class="hut-kalsel">Balai Karantina Kalimantan Selatan</span>
             </div>
         </div>
 
@@ -315,7 +315,7 @@ if ($periodeFilter !== '') $urlParamsExtra .= '&periode=' . urlencode($periodeFi
     <section class="board-hero">
         <h1 class="board-hero-title"><?= $compareMode ? 'Perbandingan Komoditas' : 'Top ' . ($topN > 0 ? $topN : 'Semua') . ' Komoditas' ?> <?= $labelKategori ?> — <?= $labelKegiatan ?></h1>
         <p class="board-hero-desc">
-            Ringkasan lalu lintas komoditas karantina yang dipublikasikan oleh Balai Karantina Hewan, Ikan, dan Tumbuhan Kalimantan Selatan.
+            Ringkasan lalu lintas komoditas karantina yang dipublikasikan oleh Balai Karantina Kalimantan Selatan.
         </p>
 
         <div class="board-periode-wrap">

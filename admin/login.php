@@ -79,7 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <img src="../embed/logo-barantin.png" alt="Logo Barantin">
                 </div>
                 <h1>Badan Karantina Indonesia</h1>
-                <p class="brand-line">BKHIT Kalimantan Selatan</p>
+                <p class="brand-line">Balai Karantina Kalimantan Selatan</p>
                 <p>Sistem Pengelolaan &amp; Publikasi Infografis</p>
             </div>
 
