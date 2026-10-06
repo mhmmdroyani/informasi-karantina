@@ -220,7 +220,7 @@ body {
 }
 
 .hero-filter-label {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--ink);
   text-transform: uppercase;
