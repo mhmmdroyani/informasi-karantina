@@ -482,7 +482,7 @@ if ($periodeFilter !== '') $urlParamsExtra .= '&periode=' . urlencode($periodeFi
         <div class="kpi-row-canva">
             <!-- 1. Nilai -->
             <div class="kpi-card-canva">
-                <div>
+                <div class="kpi-icon-circle">
                     <svg width="70" height="70" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2H4v2h1v11a3 3 0 003 3h8a3 3 0 003-3V8h1V6h-4zm-6-2h4v2h-4V4zm7 15a1 1 0 01-1 1H8a1 1 0 01-1-1V8h10v11z"/>
                         <path d="M9 10h2v2H9v1h2v1H9v1h3v-1h-1v-1h1a1 1 0 001-1v-1a1 1 0 00-1-1H9z"/>
@@ -497,7 +497,7 @@ if ($periodeFilter !== '') $urlParamsExtra .= '&periode=' . urlencode($periodeFi
 
             <!-- 2. Volume -->
             <div class="kpi-card-canva">
-                <div>
+                <div class="kpi-icon-circle">
                     <svg width="70" height="70" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
                     </svg>
@@ -516,7 +516,7 @@ if ($periodeFilter !== '') $urlParamsExtra .= '&periode=' . urlencode($periodeFi
 
             <!-- 3. Frekuensi sertifikasi -->
             <div class="kpi-card-canva">
-                <div>
+                <div class="kpi-icon-circle">
                     <svg width="70" height="70" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
                     </svg>
@@ -531,7 +531,7 @@ if ($periodeFilter !== '') $urlParamsExtra .= '&periode=' . urlencode($periodeFi
 
             <!-- 4. Negara / daerah -->
             <div class="kpi-card-canva">
-                <div>
+                <div class="kpi-icon-circle">
                     <svg width="70" height="70" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <circle cx="12" cy="12" r="10"/>
                         <path stroke-linecap="round" stroke-linejoin="round" d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
