@@ -856,7 +856,7 @@ if ($periodeFilter !== '') $urlParamsExtra .= '&periode=' . urlencode($periodeFi
 
             <p>
                 Created By
-                <a href="https://www.instagram.com/mhmmdrroyani/">@mhmmdrroyani</a> 
+                <a href="https://www.instagram.com/mhmmdrroyani/" style="text-decoration: none; color: #ffffff;">@mhmmdrroyani</a> 
                 & Novia Aulianty
             </p>
 
