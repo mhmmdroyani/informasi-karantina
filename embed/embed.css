@@ -234,8 +234,7 @@ body {
   padding: 17px 16px;
   display: flex;
   align-items: center;
-  gap: 14px;
-  box-shadow: var(--shadow-card);
+  gap: 14px;;
 }
 
 .kpi-icon-circle {
@@ -245,10 +244,10 @@ body {
   flex-shrink: 0;
 }
 
-.kpi-icon-circle.blue   { background: var(--accent-blue-soft); color: var(--accent-blue); }
-.kpi-icon-circle.teal   { background: var(--brand-soft); color: var(--brand); }
-.kpi-icon-circle.lime   { background: var(--accent-slate-soft); color: var(--accent-slate); }
-.kpi-icon-circle.orange { background: var(--accent-amber-soft); color: var(--accent-amber); }
+.kpi-icon-circle.blue   {  color: var(--accent-blue); }
+.kpi-icon-circle.teal   {  color: var(--brand); }
+.kpi-icon-circle.lime   {  color: var(--accent-slate); }
+.kpi-icon-circle.orange {  color: var(--accent-amber); }
 
 .kpi-content-canva {
   flex: 1;
