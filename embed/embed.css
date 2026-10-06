@@ -1028,15 +1028,6 @@ body {
   gap: 10px;
 }
 
-.hero-filter-label {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--ink-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  white-space: nowrap;
-}
-
 .hero-select-field select {
   min-width: 150px;
   padding: 8px 30px 8px 11px;
