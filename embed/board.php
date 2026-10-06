@@ -483,7 +483,7 @@ if ($periodeFilter !== '') $urlParamsExtra .= '&periode=' . urlencode($periodeFi
             <!-- 1. Nilai -->
             <div class="kpi-card-canva">
                 <div class="kpi-icon-circle blue">
-                    <svg width="70" height="70" fill="currentColor" viewBox="0 0 24 24">
+                    <svg width="70" height="70" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path d="M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2H4v2h1v11a3 3 0 003 3h8a3 3 0 003-3V8h1V6h-4zm-6-2h4v2h-4V4zm7 15a1 1 0 01-1 1H8a1 1 0 01-1-1V8h10v11z"/>
                         <path d="M9 10h2v2H9v1h2v1H9v1h3v-1h-1v-1h1a1 1 0 001-1v-1a1 1 0 00-1-1H9z"/>
                     </svg>
