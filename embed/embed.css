@@ -150,7 +150,7 @@ body {
 }
 
 .board-hero-desc {
-  font-size: 12px;
+  font-size: 18px;
   color: rgba(255, 255, 255, 0.72);
   line-height: 1.6;
   max-width: 820px;
@@ -207,6 +207,8 @@ body {
 
 .board-hero-controls {
   background: var(--surface);
+  color: var(--ink);
+  font-size: 12px;
   border-radius: 14px;
   padding: 12px 16px;
   display: flex;
