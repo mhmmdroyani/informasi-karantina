@@ -265,6 +265,33 @@ if (!empty($data)) {
 
 // Chart Colors
 $colors = ['#0f766e', '#2563eb', '#b45309', '#64748b', '#7c3aed'];
+
+
+function formatVolumeOtomatis($volume, $satuan) {
+    $volume = (float) $volume;
+    $satuanAsli = trim((string) $satuan);
+    $satuanLower = strtolower($satuanAsli);
+
+    // Konversi Kg menjadi Ton jika mencapai 1.000 Kg
+    if (
+        in_array($satuanLower, ['kg', 'kilogram', 'kilograms'])
+        && $volume >= 1000
+    ) {
+        return [
+            'angka' => format_angka($volume / 1000, 2),
+            'satuan' => 'Ton'
+        ];
+    }
+
+    return [
+        'angka' => format_angka(
+            $volume,
+            fmod($volume, 1) == 0.0 ? 0 : 2
+        ),
+        'satuan' => $satuanAsli !== '' ? $satuanAsli : 'Kilogram'
+    ];
+}
+
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -503,9 +530,20 @@ if ($periodeFilter !== '') $urlParamsExtra .= '&periode=' . urlencode($periodeFi
                     </svg>
                 </div>
                 <div class="kpi-content-canva">
-                    <div class="kpi-title-canva">Volume (Netto)</div>
-                    <div class="kpi-number-canva teal"><?= format_angka($primaryVolume, 1) ?></div>
-                    <div class="kpi-unit-canva teal"><?= htmlspecialchars($primaryVolumeUnit) ?></div>
+                    <div class="kpi-title-canva">Volume (Netto)</div>                   
+                    <?php
+                    $volumeTampilan = formatVolumeOtomatis(
+                        $primaryVolume,
+                        $primaryVolumeUnit
+                    );
+                    ?>
+
+                    <div class="kpi-number-canva teal">
+                        <?= $volumeTampilan['angka'] ?>
+                    </div>
+                    <div class="kpi-unit-canva teal">
+                        <?= htmlspecialchars($volumeTampilan['satuan']) ?>
+                    </div>
                     <div class="kpi-volume-secondary">
                         <?php foreach ($secondaryVolumes as $unit => $volume): ?>
                             <span>dan <?= format_angka($volume, fmod((float)$volume, 1) === 0.0 ? 0 : 2) ?> <?= htmlspecialchars($unit) ?></span>
