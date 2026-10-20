@@ -3,6 +3,7 @@
 require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../config/koneksi.php';
 require_once __DIR__ . '/../config/auth.php';
+require_once __DIR__ . '/../includes/input_validation.php';
 require_admin();
 
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -23,12 +24,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     $currentJenis = $jenis;
 
-    $cal = parse_calendar_filter('bulan', $_POST);
+    $cal = parse_calendar_filter('bulan', array_filter($_POST, 'is_scalar'));
     $periode = $cal['bln_awal'] . '_' . $cal['bln_akhir'];
     $mode = $_POST['mode'] ?? 'append';
     $langsungPublish = 0;
 
-    if (empty($periode)) {
+    if (!in_array($mode, ['append', 'replace'], true)) {
+        $error = 'Mode impor tidak valid.';
+    } elseif (empty($periode)) {
         $error = 'Rentang bulan wajib diisi!';
     } elseif (!isset($_FILES['file_excel']) || $_FILES['file_excel']['error'] !== UPLOAD_ERR_OK) {
         $error = 'Silakan pilih file Excel (.xlsx / .xls) yang valid!';
@@ -88,10 +91,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             continue;
                         }
 
-                        $frekuensi = (int)clean_number($r[2] ?? 0);
-                        $volume = clean_number($r[3] ?? 0);
+                        $frekuensi = parse_non_negative_integer($r[2] ?? 0);
+                        $volume = parse_non_negative_number($r[3] ?? 0);
                         $satuan = trim($r[4] ?? 'Kilogram') ?: 'Kilogram';
-                        $nilai = clean_number($r[5] ?? 0);
+                        $nilai = parse_non_negative_number($r[5] ?? 0);
+                        if ($frekuensi === null || $volume === null || $nilai === null) {
+                            throw new RuntimeException('Data angka tidak valid pada baris Excel ' . ($i + 1) . '.');
+                        }
                         $negara = trim($r[6] ?? '');
 
                         $insertStmt->execute([
@@ -110,7 +116,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $countCommodities++;
                     }
 
-                    $pdo->commit();
+                    if ($countCommodities > 0) {
+                        $pdo->commit();
+                    } else {
+                        $pdo->rollBack();
+                    }
 
                     $labelKeg = strtoupper(get_label_kegiatan($jenis));
                     if ($countCommodities > 0) {
@@ -123,7 +133,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($pdo->inTransaction()) {
                     $pdo->rollBack();
                 }
-                $error = 'Terjadi kesalahan saat memproses file: ' . $e->getMessage();
+                error_log('SILAKOM plant spreadsheet import failed: ' . $e->getMessage());
+                $error = 'Terjadi kesalahan saat memproses file. Periksa format dan nilai pada Excel, lalu coba lagi.';
             }
         }
     }

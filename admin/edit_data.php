@@ -2,6 +2,7 @@
 // admin/edit_data.php
 require_once __DIR__ . '/../config/koneksi.php';
 require_once __DIR__ . '/../config/auth.php';
+require_once __DIR__ . '/../includes/input_validation.php';
 require_admin();
 
 $id = (int)($_GET['id'] ?? $_POST['id'] ?? 0);
@@ -23,18 +24,20 @@ $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     require_csrf();
-    $namaKomoditas = trim($_POST['nama_komoditas'] ?? '');
-    $namaKomoditasLokal = trim($_POST['nama_komoditas_lokal'] ?? '');
-    $frekuensi = (int)clean_number($_POST['frekuensi'] ?? 0);
-    $volume = clean_number($_POST['volume'] ?? 0);
-    $satuan = trim($_POST['satuan'] ?? '') ?: 'Kilogram';
-    $nilaiEkspor = clean_number($_POST['nilai_ekspor'] ?? 0);
-    $negaraTujuan = trim($_POST['negara_tujuan'] ?? '');
-    $tanggalMulai = trim($_POST['tanggal_mulai'] ?? '');
-    $tanggalSelesai = trim($_POST['tanggal_selesai'] ?? '');
+    $namaKomoditas = is_string($_POST['nama_komoditas'] ?? null) ? trim($_POST['nama_komoditas']) : '';
+    $namaKomoditasLokal = is_string($_POST['nama_komoditas_lokal'] ?? null) ? trim($_POST['nama_komoditas_lokal']) : '';
+    $frekuensi = parse_non_negative_integer($_POST['frekuensi'] ?? 0);
+    $volume = parse_non_negative_number($_POST['volume'] ?? 0);
+    $satuan = (is_string($_POST['satuan'] ?? null) ? trim($_POST['satuan']) : '') ?: 'Kilogram';
+    $nilaiEkspor = parse_non_negative_number($_POST['nilai_ekspor'] ?? 0);
+    $negaraTujuan = is_string($_POST['negara_tujuan'] ?? null) ? trim($_POST['negara_tujuan']) : '';
+    $tanggalMulai = is_string($_POST['tanggal_mulai'] ?? null) ? trim($_POST['tanggal_mulai']) : '';
+    $tanggalSelesai = is_string($_POST['tanggal_selesai'] ?? null) ? trim($_POST['tanggal_selesai']) : '';
 
     if (empty($namaKomoditas)) {
         $error = 'Nama komoditas wajib diisi!';
+    } elseif ($frekuensi === null || $volume === null || $nilaiEkspor === null) {
+        $error = 'Frekuensi harus bilangan bulat non-negatif; volume dan nilai harus angka non-negatif dengan maksimal dua desimal.';
     } else {
         $stmtUpdate = $pdo->prepare("UPDATE ekspor_komoditas SET
             nama_komoditas = ?, nama_komoditas_lokal = ?, frekuensi = ?, volume = ?, satuan = ?,

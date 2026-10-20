@@ -16,15 +16,13 @@ foreach ($allJenisList as $j) {
     $stmtSummary = $pdo->prepare("SELECT 
         COUNT(*) as total_items,
         SUM(CASE WHEN is_published = 1 THEN 1 ELSE 0 END) as published_items,
-        SUM(CASE WHEN is_published = 1 THEN nilai_ekspor ELSE 0 END) as total_nilai,
-        SUM(CASE WHEN is_published = 1 THEN volume ELSE 0 END) as total_volume
+        SUM(CASE WHEN is_published = 1 THEN nilai_ekspor ELSE 0 END) as total_nilai
         FROM ekspor_komoditas WHERE jenis_kegiatan = ?");
     $stmtSummary->execute([$j]);
     $summaryAll[$j] = $stmtSummary->fetch() ?: [
         'total_items' => 0,
         'published_items' => 0,
-        'total_nilai' => 0,
-        'total_volume' => 0
+        'total_nilai' => 0
     ];
 }
 
@@ -38,7 +36,6 @@ foreach ($kategoris as $k) {
         COUNT(*) as total_items,
         SUM(CASE WHEN is_published = 1 THEN 1 ELSE 0 END) as published_items,
         SUM(CASE WHEN is_published = 1 THEN nilai_ekspor ELSE 0 END) as total_nilai,
-        SUM(CASE WHEN is_published = 1 THEN volume ELSE 0 END) as total_volume,
         COUNT(DISTINCT periode) as count_periode
         FROM ekspor_komoditas WHERE jenis_kegiatan = ? AND kategori = ?");
     $stmt->execute([$activeJenis, $k]);

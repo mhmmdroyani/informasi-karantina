@@ -1,11 +1,17 @@
 <?php
 // database/upgrade_schema.php
-$host = 'sql209.infinityfree.com';
-$user = 'if0_42997399';
-$pass = 'bkhitkalsel2026';
+$host = getenv('SILAKOM_DB_HOST');
+$database = getenv('SILAKOM_DB_NAME');
+$user = getenv('SILAKOM_DB_USER');
+$pass = getenv('SILAKOM_DB_PASSWORD');
+
+if ($host === false || $host === '' || $database === false || $database === '' || $user === false || $user === '' || $pass === false) {
+    fwrite(STDERR, "Konfigurasi database SILAKOM belum lengkap.\n");
+    exit(1);
+}
 
 try {
-    $pdo = new PDO("mysql:host={$host};dbname=db_ekspor_karantina;charset=utf8mb4", $user, $pass);
+    $pdo = new PDO("mysql:host={$host};dbname={$database};charset=utf8mb4", $user, $pass);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
     echo "Memulai migrasi database untuk 4 jenis kegiatan lalu lintas...\n";
