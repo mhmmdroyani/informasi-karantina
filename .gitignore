@@ -5,6 +5,7 @@
 .env
 .env.*
 !.env.example
+/config/database.local.php
 
 # IDE
 .vscode/

@@ -1,9 +1,21 @@
 <?php
 // config/koneksi.php
-$dbHost = 'sql209.infinityfree.com';
-$dbName = 'if0_42997399_db_ekspor_karantina';
-$dbUser = 'if0_42997399';
-$dbPass = 'bkhitkalsel2026';
+$databaseConfigPath = __DIR__ . '/database.local.php';
+if (!is_file($databaseConfigPath)) {
+    throw new RuntimeException('Konfigurasi database lokal tidak ditemukan.');
+}
+
+$databaseConfig = require $databaseConfigPath;
+foreach (['host', 'name', 'user', 'password'] as $key) {
+    if (!is_array($databaseConfig) || !array_key_exists($key, $databaseConfig) || !is_string($databaseConfig[$key])) {
+        throw new RuntimeException('Konfigurasi database lokal tidak lengkap.');
+    }
+}
+
+$dbHost = $databaseConfig['host'];
+$dbName = $databaseConfig['name'];
+$dbUser = $databaseConfig['user'];
+$dbPass = $databaseConfig['password'];
 
 try {
     $pdo = new PDO("mysql:host={$dbHost};dbname={$dbName};charset=utf8mb4", $dbUser, $dbPass, [
@@ -294,6 +306,13 @@ function format_label_tahun($tglAwal, $tglAkhir, $fallbackLabel = '') {
 
 function format_label_periode_kode($periode) {
     $periode = trim((string)$periode);
+    if (preg_match('/^(\d{4})-(\d{2})$/', $periode, $matches)) {
+        $bulan = (int)$matches[2];
+        if ($bulan >= 1 && $bulan <= 12) {
+            return strtoupper(nama_bulan_indo($bulan) . ' ' . $matches[1]);
+        }
+        return '';
+    }
     if (!preg_match('/^(\d{4})-(\d{2})_(\d{4})-(\d{2})$/', $periode, $matches)) {
         return '';
     }
@@ -392,4 +411,3 @@ function parse_calendar_filter($mode, $getParams) {
 
     return $result;
 }
-

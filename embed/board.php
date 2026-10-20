@@ -29,7 +29,15 @@ $setting = $stmtSet->fetch() ?: [
 ];
 
 $topN = (int)($setting['top_n'] ?? 5);
-$urutan = ($setting['urutkan_berdasarkan'] === 'frekuensi') ? 'frekuensi' : 'nilai_ekspor';
+$urutan = (($setting['urutkan_berdasarkan'] ?? '') === 'frekuensi') ? 'frekuensi' : 'nilai_ekspor';
+$requestedTopN = filter_var($_GET['top_n'] ?? null, FILTER_VALIDATE_INT);
+if ($requestedTopN !== null && $requestedTopN !== false && in_array($requestedTopN, [0, 1, 3, 5, 10], true)) {
+    $topN = $requestedTopN;
+}
+$requestedSort = $_GET['urutkan'] ?? '';
+if (in_array($requestedSort, ['nilai_ekspor', 'frekuensi'], true)) {
+    $urutan = $requestedSort;
+}
 $periodeFilter = trim($_GET['periode'] ?? '');
 $periodeStmt = $pdo->prepare("SELECT DISTINCT periode FROM ekspor_komoditas WHERE jenis_kegiatan = ? AND kategori = ? AND is_published = 1 ORDER BY periode ASC");
 $periodeStmt->execute([$jenis, $kategori]);
@@ -44,7 +52,12 @@ if ($periodeFilter !== '') {
     if ($periodSetting) {
         $setting = array_merge($setting, $periodSetting);
         $topN = (int)($setting['top_n'] ?? 5);
-        $urutan = ($setting['urutkan_berdasarkan'] === 'frekuensi') ? 'frekuensi' : 'nilai_ekspor';
+        if (!array_key_exists('top_n', $_GET)) {
+            $topN = (int)($setting['top_n'] ?? 5);
+        }
+        if (!array_key_exists('urutkan', $_GET)) {
+            $urutan = (($setting['urutkan_berdasarkan'] ?? '') === 'frekuensi') ? 'frekuensi' : 'nilai_ekspor';
+        }
     }
 }
 $compareMode = $comparisonPage || (isset($_GET['banding']) && $_GET['banding'] === '1');
@@ -56,6 +69,7 @@ $comparisonLabelA = format_label_periode_kode($periodeA) ?: $periodeA;
 $comparisonLabelB = format_label_periode_kode($periodeB) ?: $periodeB;
 
 $comparison = null;
+$comparisonMonthly = [];
 if ($compareMode && $periodeA !== '' && $periodeB !== '') {
     $compareStmt = $pdo->prepare("SELECT periode, nilai_ekspor, volume, frekuensi, negara_tujuan FROM ekspor_komoditas WHERE jenis_kegiatan = ? AND kategori = ? AND is_published = 1 AND periode IN (?, ?)");
     $compareStmt->execute([$jenis, $kategori, $periodeA, $periodeB]);
@@ -78,6 +92,50 @@ if ($compareMode && $periodeA !== '' && $periodeB !== '') {
             'negara' => count($countries)
         ];
     }
+
+    $yearA = substr($periodeA, 0, 4);
+    $yearB = substr($periodeB, 0, 4);
+    $comparisonYears = array_values(array_unique([$yearA, $yearB]));
+    $trendStmt = $pdo->prepare("SELECT periode, nilai_ekspor, volume, frekuensi, negara_tujuan
+        FROM ekspor_komoditas
+        WHERE jenis_kegiatan = ? AND kategori = ? AND is_published = 1
+            AND periode REGEXP '^[0-9]{4}-[0-9]{2}$'
+            AND LEFT(periode, 4) IN (?, ?)
+        ORDER BY periode");
+    $trendStmt->execute([$jenis, $kategori, $yearA, $yearB]);
+    $trendRows = $trendStmt->fetchAll();
+    foreach ([$yearA, $yearB] as $year) {
+        $comparisonMonthly[$year] = [
+            'nilai' => array_fill(1, 12, 0.0),
+            'volume' => array_fill(1, 12, 0.0),
+            'frekuensi' => array_fill(1, 12, 0),
+            'negara' => array_fill(1, 12, [])
+        ];
+    }
+    foreach ($trendRows as $row) {
+        $year = substr($row['periode'], 0, 4);
+        $month = (int)substr($row['periode'], 5, 2);
+        if (!isset($comparisonMonthly[$year]) || $month < 1 || $month > 12) {
+            continue;
+        }
+        $comparisonMonthly[$year]['nilai'][$month] += (float)$row['nilai_ekspor'];
+        $comparisonMonthly[$year]['volume'][$month] += (float)$row['volume'];
+        $comparisonMonthly[$year]['frekuensi'][$month] += (int)$row['frekuensi'];
+        $parts = preg_split('/\s*(?:,|;|\/|\|)\s*/', (string)($row['negara_tujuan'] ?? ''));
+        foreach ($parts as $country) {
+            $country = trim($country);
+            if ($country !== '') {
+                $comparisonMonthly[$year]['negara'][$month][strtolower($country)] = $country;
+            }
+        }
+    }
+    foreach ($comparisonMonthly as &$yearMetrics) {
+        foreach ($yearMetrics['negara'] as &$countriesByMonth) {
+            $countriesByMonth = count($countriesByMonth);
+        }
+        unset($countriesByMonth);
+    }
+    unset($yearMetrics);
 }
 
 // Filter kalender: utamakan parameter URL jika ada, jika tidak gunakan setting tersimpan
@@ -314,6 +372,12 @@ if (isset($_GET['bln_akhir'])) $urlParamsExtra .= '&bln_akhir=' . urlencode($_GE
 if (isset($_GET['tgl_awal'])) $urlParamsExtra .= '&tgl_awal=' . urlencode($_GET['tgl_awal']);
 if (isset($_GET['tgl_akhir'])) $urlParamsExtra .= '&tgl_akhir=' . urlencode($_GET['tgl_akhir']);
 if (isset($_GET['mode'])) $urlParamsExtra .= '&mode=' . urlencode($_GET['mode']);
+if (isset($_GET['top_n'])) $urlParamsExtra .= '&top_n=' . urlencode($_GET['top_n']);
+if (isset($_GET['urutkan'])) $urlParamsExtra .= '&urutkan=' . urlencode($_GET['urutkan']);
+$urlParamsExtra .= $compareMode ? '&banding=1' : '';
+if ($compareMode) {
+    $urlParamsExtra .= '&periode_a=' . urlencode($periodeA) . '&periode_b=' . urlencode($periodeB);
+}
 $urlParamsBase = $urlParamsExtra;
 if ($periodeFilter !== '') $urlParamsExtra .= '&periode=' . urlencode($periodeFilter);
 ?>
@@ -375,6 +439,25 @@ if ($periodeFilter !== '') $urlParamsExtra .= '&periode=' . urlencode($periodeFi
                 </select>
             </label>
 
+            <label class="hero-select-field">
+                <span class="hero-filter-label">Tampilkan</span>
+                <select name="top_n" aria-label="Jumlah komoditas" onchange="const url = new URL(window.location); url.searchParams.set('top_n', this.value); window.location.href = url.toString()">
+                    <option value="1" <?= $topN === 1 ? 'selected' : '' ?>>Top 1</option>
+                    <option value="3" <?= $topN === 3 ? 'selected' : '' ?>>Top 3</option>
+                    <option value="5" <?= $topN === 5 ? 'selected' : '' ?>>Top 5</option>
+                    <option value="10" <?= $topN === 10 ? 'selected' : '' ?>>Top 10</option>
+                    <option value="0" <?= $topN === 0 ? 'selected' : '' ?>>Semua Data</option>
+                </select>
+            </label>
+
+            <label class="hero-select-field">
+                <span class="hero-filter-label">Urutkan</span>
+                <select name="urutkan" aria-label="Urutkan komoditas" onchange="const url = new URL(window.location); url.searchParams.set('urutkan', this.value); window.location.href = url.toString()">
+                    <option value="nilai_ekspor" <?= $urutan === 'nilai_ekspor' ? 'selected' : '' ?>>Nilai Barang</option>
+                    <option value="frekuensi" <?= $urutan === 'frekuensi' ? 'selected' : '' ?>>Frekuensi</option>
+                </select>
+            </label>
+
             <?php if (!$comparisonPage): ?>
             <label class="hero-select-field">
                 <span class="hero-filter-label">Periode Data</span>
@@ -382,12 +465,12 @@ if ($periodeFilter !== '') $urlParamsExtra .= '&periode=' . urlencode($periodeFi
                     <option value="?jenis=<?= $jenis ?>&kategori=<?= $kategori ?><?= $urlParamsBase ?>" <?= $periodeFilter === '' ? 'selected' : '' ?> disabled><?= $compareMode ? htmlspecialchars($comparisonLabelA . ' vs ' . $comparisonLabelB) : 'Pilih periode data' ?></option>
                     <?php foreach ($periodeOptions as $periodeOption): ?>
                         <?php $periodeLabel = format_label_periode_kode($periodeOption) ?: $periodeOption; ?>
-                        <option value="?jenis=<?= $jenis ?>&kategori=<?= $kategori ?>&periode=<?= urlencode($periodeOption) ?>" <?= $periodeFilter === $periodeOption ? 'selected' : '' ?>><?= htmlspecialchars($periodeLabel) ?></option>
+                        <option value="?jenis=<?= $jenis ?>&kategori=<?= $kategori ?>&periode=<?= urlencode($periodeOption) ?><?= $urlParamsBase ?>" <?= $periodeFilter === $periodeOption ? 'selected' : '' ?>><?= htmlspecialchars($periodeLabel) ?></option>
                     <?php endforeach; ?>
                 </select>
             </label>
 
-            <a href="<?= $assetPath ?>perbandingan.php?jenis=<?= urlencode($jenis) ?>&kategori=<?= urlencode($kategori) ?>" class="board-compare-btn">Bandingkan Periode</a>
+            <a href="<?= $assetPath ?>perbandingan.php?jenis=<?= urlencode($jenis) ?>&kategori=<?= urlencode($kategori) ?>&top_n=<?= $topN ?>&urutkan=<?= urlencode($urutan) ?><?= $periodeFilter !== '' ? '&periode_a=' . urlencode($periodeFilter) : '' ?>" class="board-compare-btn">Bandingkan Periode</a>
             <?php else: ?>
             <a href="<?= $assetPath ?>../index.php?jenis=<?= urlencode($jenis) ?>&kategori=<?= urlencode($kategori) ?><?= $periodeFilter !== '' ? '&periode=' . urlencode($periodeFilter) : '' ?>" class="board-compare-btn">Kembali ke Board</a>
             <?php endif; ?>
@@ -399,7 +482,7 @@ if ($periodeFilter !== '') $urlParamsExtra .= '&periode=' . urlencode($periodeFi
     <?php if ($compareMode && $comparison !== null): ?>
         <?php
         $comparisonMetrics = [
-            ['label' => 'Nilai Ekspor', 'key' => 'nilai', 'format' => fn($value) => format_rupiah_singkat($value)],
+            ['label' => 'Nilai ' . $labelKegiatan, 'key' => 'nilai', 'format' => fn($value) => format_rupiah_singkat($value)],
             ['label' => 'Volume', 'key' => 'volume', 'format' => fn($value) => format_angka($value, 1)],
             ['label' => 'Frekuensi', 'key' => 'frekuensi', 'format' => fn($value) => format_angka($value)],
             ['label' => 'Negara Tujuan', 'key' => 'negara', 'format' => fn($value) => format_angka($value)]
@@ -409,13 +492,15 @@ if ($periodeFilter !== '') $urlParamsExtra .= '&periode=' . urlencode($periodeFi
             <div class="board-comparison-header">
                 <div>
                     <h2>Perbandingan Periode</h2>
-                    <p>Bandingkan data yang sudah dipublikasikan untuk dua snapshot periode.</p>
+                    <p>Bandingkan nilai pada bulan pilihan dan lihat tren bulanan pada tahun terkait.</p>
                 </div>
             </div>
             <form method="GET" class="board-comparison-filters">
                 <input type="hidden" name="jenis" value="<?= htmlspecialchars($jenis) ?>">
                 <input type="hidden" name="kategori" value="<?= htmlspecialchars($kategori) ?>">
                 <input type="hidden" name="banding" value="1">
+                <input type="hidden" name="top_n" value="<?= $topN ?>">
+                <input type="hidden" name="urutkan" value="<?= htmlspecialchars($urutan) ?>">
                 <label>Periode A
                     <select name="periode_a" onchange="this.form.submit()">
                         <?php foreach ($periodeOptions as $period): ?>
@@ -457,36 +542,43 @@ if ($periodeFilter !== '') $urlParamsExtra .= '&periode=' . urlencode($periodeFi
             <div class="board-comparison-chart">
                 <h3>Grafik Perbandingan</h3>
                 <div class="comparison-chart-grid">
-                    <div class="comparison-chart-card"><span>Nilai Ekspor (Miliar Rp)</span><div class="comparison-chart-canvas"><canvas id="comparisonChartNilai"></canvas></div></div>
+                    <div class="comparison-chart-card"><span>Nilai <?= htmlspecialchars($labelKegiatan) ?> (Miliar Rp)</span><div class="comparison-chart-canvas"><canvas id="comparisonChartNilai"></canvas></div></div>
                     <div class="comparison-chart-card"><span>Volume</span><div class="comparison-chart-canvas"><canvas id="comparisonChartVolume"></canvas></div></div>
                     <div class="comparison-chart-card"><span>Frekuensi</span><div class="comparison-chart-canvas"><canvas id="comparisonChartFrekuensi"></canvas></div></div>
                     <div class="comparison-chart-card"><span>Negara Tujuan</span><div class="comparison-chart-canvas"><canvas id="comparisonChartNegara"></canvas></div></div>
                 </div>
             </div>
             <script>
-            const comparisonLabels = [<?= json_encode($comparisonLabelA) ?>, <?= json_encode($comparisonLabelB) ?>];
+            const comparisonLabels = <?= json_encode(array_map('nama_bulan_indo', range(1, 12))) ?>;
+            const comparisonYears = <?= json_encode($comparisonYears) ?>;
+            const comparisonYearData = <?= json_encode(array_intersect_key($comparisonMonthly, array_flip($comparisonYears))) ?>;
             const comparisonCharts = [
-                ['comparisonChartNilai', [<?= $comparison[$periodeA]['nilai'] / 1000000000 ?>, <?= $comparison[$periodeB]['nilai'] / 1000000000 ?>]],
-                ['comparisonChartVolume', [<?= $comparison[$periodeA]['volume'] ?>, <?= $comparison[$periodeB]['volume'] ?>]],
-                ['comparisonChartFrekuensi', [<?= $comparison[$periodeA]['frekuensi'] ?>, <?= $comparison[$periodeB]['frekuensi'] ?>]],
-                ['comparisonChartNegara', [<?= $comparison[$periodeA]['negara'] ?>, <?= $comparison[$periodeB]['negara'] ?>]]
+                ['comparisonChartNilai', 'nilai', 1000000000],
+                ['comparisonChartVolume', 'volume', 1],
+                ['comparisonChartFrekuensi', 'frekuensi', 1],
+                ['comparisonChartNegara', 'negara', 1]
             ];
             comparisonCharts.forEach(function(chartItem) {
                 new Chart(document.getElementById(chartItem[0]), {
-                    type: 'bar',
+                    type: 'line',
                     data: {
                         labels: comparisonLabels,
-                        datasets: [{
-                            data: chartItem[1],
-                            backgroundColor: ['#2563eb', '#0f766e'],
-                            borderRadius: 5,
-                            barPercentage: 0.55
-                        }]
+                        datasets: comparisonYears.map(function(year, index) {
+                            const color = index === 0 ? '#2563eb' : '#0f766e';
+                            const values = comparisonYearData[year][chartItem[1]] || {};
+                            return {
+                                label: year,
+                                data: Object.values(values).map(value => (chartItem[1] === 'negara' ? value : value / chartItem[2])),
+                                borderColor: color,
+                                backgroundColor: color,
+                                tension: 0.25
+                            };
+                        })
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
+                        plugins: { legend: { display: true } },
                         scales: {
                             y: { beginAtZero: true, grid: { color: '#e5e7eb' } },
                             x: { grid: { display: false }, ticks: { font: { size: 9 } } }

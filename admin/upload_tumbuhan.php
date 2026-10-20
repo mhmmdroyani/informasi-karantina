@@ -3,9 +3,8 @@
 require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../config/koneksi.php';
 require_once __DIR__ . '/../config/auth.php';
+require_once __DIR__ . '/../includes/raw_excel_import.php';
 require_admin();
-
-use PhpOffice\PhpSpreadsheet\IOFactory;
 
 $message = '';
 $error = '';
@@ -15,118 +14,14 @@ if (!in_array($currentJenis, ['ekspor', 'impor', 'domestik_keluar', 'domestik_ma
     $currentJenis = 'domestik_masuk';
 }
 
+if (!empty($_GET['msg'])) {
+    $message = htmlspecialchars((string)$_GET['msg'], ENT_QUOTES, 'UTF-8');
+}
+if (!empty($_GET['error'])) {
+    $error = htmlspecialchars((string)$_GET['error'], ENT_QUOTES, 'UTF-8');
+}
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    require_csrf();
-    $jenis = $_POST['jenis_kegiatan'] ?? 'domestik_masuk';
-    if (!in_array($jenis, ['ekspor', 'impor', 'domestik_keluar', 'domestik_masuk'])) {
-        $jenis = 'domestik_masuk';
-    }
-    $currentJenis = $jenis;
-
-    $cal = parse_calendar_filter('bulan', $_POST);
-    $periode = $cal['bln_awal'] . '_' . $cal['bln_akhir'];
-    $mode = $_POST['mode'] ?? 'append';
-    $langsungPublish = 0;
-
-    if (empty($periode)) {
-        $error = 'Rentang bulan wajib diisi!';
-    } elseif (!isset($_FILES['file_excel']) || $_FILES['file_excel']['error'] !== UPLOAD_ERR_OK) {
-        $error = 'Silakan pilih file Excel (.xlsx / .xls) yang valid!';
-    } else {
-        $tmpPath = $_FILES['file_excel']['tmp_name'];
-        $fileName = $_FILES['file_excel']['name'];
-        $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
-
-        if (!in_array($ext, ['xlsx', 'xls', 'csv'])) {
-            $error = 'Format file tidak didukung. Harap upload file Excel (.xlsx / .xls).';
-        } else {
-            try {
-                $spreadsheet = IOFactory::load($tmpPath);
-                
-                // Cari sheet 'Ops' (case-insensitive) atau fallback sheet pertama
-                $sheet = null;
-                foreach ($spreadsheet->getSheetNames() as $sName) {
-                    if (strcasecmp($sName, 'Ops') === 0) {
-                        $sheet = $spreadsheet->getSheetByName($sName);
-                        break;
-                    }
-                }
-                if (!$sheet) {
-                    $sheet = $spreadsheet->getSheet(0);
-                }
-
-                $rows = $sheet->toArray();
-                $totalRows = count($rows);
-
-                if ($totalRows < 3) {
-                    $error = 'File Excel tidak memiliki baris data (minimal harus ada baris judul, header, dan data di baris ke-3).';
-                } else {
-                    $pdo->beginTransaction();
-
-                    if ($mode === 'replace') {
-                        $stmtDel = $pdo->prepare("DELETE FROM ekspor_komoditas WHERE jenis_kegiatan = ? AND kategori = 'tumbuhan' AND periode = ?");
-                        $stmtDel->execute([$jenis, $periode]);
-                    }
-
-                    $insertStmt = $pdo->prepare("INSERT INTO ekspor_komoditas 
-                        (kategori, jenis_kegiatan, nama_komoditas, frekuensi, volume, satuan, nilai_ekspor, negara_tujuan, periode, tanggal_mulai, tanggal_selesai, is_published) 
-                        VALUES ('tumbuhan', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-
-                    $countCommodities = 0;
-                    $tanggalMulai = $cal['tgl_awal'];
-                    $tanggalSelesai = $cal['tgl_akhir'];
-
-                    for ($i = 0; $i < $totalRows; $i++) {
-                        $r = $rows[$i];
-                        if (is_skippable_import_row($r)) {
-                            continue;
-                        }
-
-                        $namaKomoditas = trim($r[1] ?? '');
-
-                        if (empty($namaKomoditas) || strcasecmp($namaKomoditas, 'total') === 0 || strcasecmp($namaKomoditas, 'jumlah') === 0) {
-                            continue;
-                        }
-
-                        $frekuensi = (int)clean_number($r[2] ?? 0);
-                        $volume = clean_number($r[3] ?? 0);
-                        $satuan = trim($r[4] ?? 'Kilogram') ?: 'Kilogram';
-                        $nilai = clean_number($r[5] ?? 0);
-                        $negara = trim($r[6] ?? '');
-
-                        $insertStmt->execute([
-                            $jenis,
-                            $namaKomoditas,
-                            $frekuensi,
-                            $volume,
-                            $satuan,
-                            $nilai,
-                            $negara,
-                            $periode,
-                            $tanggalMulai,
-                            $tanggalSelesai,
-                            $langsungPublish
-                        ]);
-                        $countCommodities++;
-                    }
-
-                    $pdo->commit();
-
-                    $labelKeg = strtoupper(get_label_kegiatan($jenis));
-                    if ($countCommodities > 0) {
-                        $message = "Berhasil mengimpor <strong>{$countCommodities} komoditas tumbuhan</strong> untuk aktivitas <strong>{$labelKeg}</strong> (periode: <strong>" . htmlspecialchars($periode) . "</strong>)!";
-                    } else {
-                        $error = 'Tidak ada baris data yang berhasil dibaca. Pastikan kolom data dimulai dari baris ke-3.';
-                    }
-                }
-            } catch (Exception $e) {
-                if ($pdo->inTransaction()) {
-                    $pdo->rollBack();
-                }
-                $error = 'Terjadi kesalahan saat memproses file: ' . $e->getMessage();
-            }
-        }
-    }
+    handle_raw_excel_upload($pdo, 'tumbuhan');
 }
 ?>
 <!DOCTYPE html>
@@ -225,24 +120,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <a href="upload_tumbuhan.php?jenis=<?= $currentJenis ?>" class="tab-link active kategori-tab-link"><span class="dot dot-tumbuhan"></span> Tumbuhan (KT)</a>
                     </div>
                 </div>
-                <!-- Kalender Pemilihan Rentang Periode Data -->
+                <!-- Kalender Pemilihan Bulan Data -->
                 <div class="card card-pad" style="background: var(--bg);">
-                    <label class="field-label" style="display: block; margin-bottom: 12px;">Tentukan Rentang Periode Data (Kalender) <span style="color: var(--danger);">*</span></label>
-
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px;">
-                        <div>
-                            <label class="field-label">Dari Bulan</label>
-                            <input type="month" name="bln_awal" value="<?= date('Y-01') ?>" class="field-input">
-                        </div>
-                        <div>
-                            <label class="field-label">Sampai Bulan</label>
-                            <input type="month" name="bln_akhir" value="<?= date('Y-12') ?>" class="field-input">
-                        </div>
-                    </div>
-
-                    <input type="hidden" name="cal_mode" value="bulan">
-
-                    <p class="field-hint">Data yang diunggah akan otomatis memiliki satu periode dan tanggal mulai/selesai sesuai bulan yang dipilih.</p>
+                    <label class="field-label" style="display: block; margin-bottom: 12px;">Pilih Bulan Data <span style="color: var(--danger);">*</span></label>
+                    <input type="month" name="periode" value="<?= date('Y-m') ?>" required class="field-input">
+                    <p class="field-hint">Satu file Excel mentah direkap untuk satu bulan yang dipilih.</p>
                 </div>
 
                 <!-- File Excel -->
