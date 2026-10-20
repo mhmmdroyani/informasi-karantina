@@ -17,6 +17,14 @@ function raw_excel_unique_values($values)
     return array_values($unique);
 }
 
+function raw_excel_group_key($commodity, $unit)
+{
+    $normalizedCommodity = strtolower(preg_replace('/\s+/', ' ', trim((string)$commodity)));
+    $normalizedUnit = strtolower(preg_replace('/\s+/', ' ', trim((string)$unit)));
+
+    return $normalizedCommodity . "\0" . $normalizedUnit;
+}
+
 function ensure_monthly_raw_columns($pdo)
 {
     foreach (['klasifikasi', 'daerah_asal', 'daerah_tujuan'] as $column) {
@@ -81,7 +89,7 @@ function aggregate_raw_excel_rows($rows)
         $daerahTujuan = trim((string)($row[$columns['daerah_tujuan']] ?? ''));
         $negaraTujuan = trim((string)($row[$columns['negara_tujuan']] ?? ''));
 
-        $key = strtolower(preg_replace('/\s+/', ' ', $nama));
+        $key = raw_excel_group_key($nama, $unit);
         if (!isset($groups[$key])) {
             $groups[$key] = [
                 'klasifikasi' => $klasifikasi,
@@ -95,10 +103,6 @@ function aggregate_raw_excel_rows($rows)
                 'negara_tujuan' => []
             ];
         }
-        if (strcasecmp($groups[$key]['satuan'], $unit) !== 0) {
-            throw new RuntimeException('Satuan untuk komoditas "' . $nama . '" berbeda. Volume tidak dapat dijumlahkan.');
-        }
-
         $groups[$key]['frekuensi']++;
         $groups[$key]['volume'] += $volume;
         $groups[$key]['nilai_ekspor'] += $nilai;
@@ -129,14 +133,15 @@ function merge_raw_excel_entries($existingEntries, $newEntries)
 {
     $merged = [];
     foreach (array_merge($existingEntries, $newEntries) as $entry) {
-        $key = strtolower(preg_replace('/\s+/', ' ', trim((string)$entry['nama_komoditas'])));
+        $unit = trim((string)$entry['satuan']) ?: 'Tidak diketahui';
+        $key = raw_excel_group_key($entry['nama_komoditas'], $unit);
         if (!isset($merged[$key])) {
             $merged[$key] = [
                 'klasifikasi' => (string)($entry['klasifikasi'] ?? ''),
                 'nama_komoditas' => (string)$entry['nama_komoditas'],
                 'frekuensi' => (int)$entry['frekuensi'],
                 'volume' => (float)$entry['volume'],
-                'satuan' => trim((string)$entry['satuan']) ?: 'Tidak diketahui',
+                'satuan' => $unit,
                 'nilai_ekspor' => (float)$entry['nilai_ekspor'],
                 'daerah_asal' => is_array($entry['daerah_asal']) ? $entry['daerah_asal'] : preg_split('/\s*(?:,|;|\||\n)\s*/', (string)$entry['daerah_asal']),
                 'daerah_tujuan' => is_array($entry['daerah_tujuan']) ? $entry['daerah_tujuan'] : preg_split('/\s*(?:,|;|\||\n)\s*/', (string)$entry['daerah_tujuan']),
@@ -145,9 +150,6 @@ function merge_raw_excel_entries($existingEntries, $newEntries)
             continue;
         }
 
-        if (strcasecmp($merged[$key]['satuan'], trim((string)$entry['satuan'])) !== 0) {
-            throw new RuntimeException('Satuan untuk komoditas "' . $entry['nama_komoditas'] . '" berbeda. Volume tidak dapat dijumlahkan.');
-        }
         $merged[$key]['frekuensi'] += (int)$entry['frekuensi'];
         $merged[$key]['volume'] += (float)$entry['volume'];
         $merged[$key]['nilai_ekspor'] += (float)$entry['nilai_ekspor'];

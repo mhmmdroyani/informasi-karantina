@@ -18,7 +18,7 @@ if (!empty($_GET['msg'])) {
     $message = htmlspecialchars((string)$_GET['msg'], ENT_QUOTES, 'UTF-8');
 }
 if (!empty($_GET['error'])) {
-    $error = htmlspecialchars((string)$_GET['error'], ENT_QUOTES, 'UTF-8');
+    $error = (string)$_GET['error'];
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
