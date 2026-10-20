@@ -1,9 +1,15 @@
 <?php
 // config/koneksi.php
-$dbHost = 'sql209.infinityfree.com';
-$dbName = 'if0_42997399_db_ekspor_karantina';
-$dbUser = 'if0_42997399';
-$dbPass = 'bkhitkalsel2026';
+$dbHost = getenv('SILAKOM_DB_HOST');
+$dbName = getenv('SILAKOM_DB_NAME');
+$dbUser = getenv('SILAKOM_DB_USER');
+$dbPass = getenv('SILAKOM_DB_PASSWORD');
+
+if ($dbHost === false || $dbHost === '' || $dbName === false || $dbName === '' || $dbUser === false || $dbUser === '' || $dbPass === false) {
+    http_response_code(500);
+    error_log('SILAKOM database configuration is incomplete.');
+    exit('Konfigurasi database belum lengkap.');
+}
 
 try {
     $pdo = new PDO("mysql:host={$dbHost};dbname={$dbName};charset=utf8mb4", $dbUser, $dbPass, [
@@ -12,7 +18,9 @@ try {
         PDO::ATTR_EMULATE_PREPARES   => false,
     ]);
 } catch (PDOException $e) {
-    die("Koneksi database gagal: " . $e->getMessage());
+    error_log('SILAKOM database connection failed: ' . $e->getMessage());
+    http_response_code(500);
+    exit('Koneksi database gagal.');
 }
 
 /**
@@ -392,4 +400,3 @@ function parse_calendar_filter($mode, $getParams) {
 
     return $result;
 }
-

@@ -2,6 +2,7 @@
 // admin/proses_update.php
 require_once __DIR__ . '/../config/koneksi.php';
 require_once __DIR__ . '/../config/auth.php';
+require_once __DIR__ . '/../includes/input_validation.php';
 require_admin();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -20,16 +21,19 @@ if (!in_array($kategori, ['hewan', 'ikan', 'tumbuhan'])) {
     $kategori = 'hewan';
 }
 
-$periode = trim($_POST['periode'] ?? '');
+$periode = is_string($_POST['periode'] ?? null) ? trim($_POST['periode']) : '';
 
-$topN = (int)($_POST['top_n'] ?? 5);
+$topN = filter_var($_POST['top_n'] ?? 5, FILTER_VALIDATE_INT);
+if (!in_array($topN, [0, 1, 3, 5, 10], true)) {
+    $topN = 5;
+}
 $urutkan = in_array($_POST['urutkan_berdasarkan'] ?? '', ['nilai_ekspor', 'frekuensi']) ? $_POST['urutkan_berdasarkan'] : 'nilai_ekspor';
 
 // Parse Kalender Rentang (hanya mode per Bulan yang didukung)
 $filterMode = 'bulan';
-$cal = parse_calendar_filter($filterMode, $_POST);
+$cal = parse_calendar_filter($filterMode, array_filter($_POST, 'is_scalar'));
 
-$periodeLabel = trim($_POST['periode_label'] ?? '');
+$periodeLabel = is_string($_POST['periode_label'] ?? null) ? trim($_POST['periode_label']) : '';
 if (empty($periodeLabel)) {
     $periodeLabel = $cal['label_tahun'];
 } else {
@@ -39,8 +43,10 @@ if (empty($periodeLabel)) {
     }
 }
 
-$allIds = isset($_POST['all_ids']) && is_array($_POST['all_ids']) ? array_map('intval', $_POST['all_ids']) : [];
-$publishedIds = isset($_POST['published_ids']) && is_array($_POST['published_ids']) ? array_map('intval', $_POST['published_ids']) : [];
+$allIds = parse_positive_integer_ids($_POST['all_ids'] ?? []);
+$submittedPublishedIds = parse_positive_integer_ids($_POST['published_ids'] ?? []);
+$publishedIds = array_values(array_intersect($submittedPublishedIds, $allIds));
+$searchQuery = is_string($_POST['q'] ?? null) ? trim($_POST['q']) : '';
 
 try {
     $pdo->beginTransaction();
@@ -77,14 +83,14 @@ try {
     if (!empty($allIds)) {
         // Reset semua data dalam view ini menjadi is_published = 0
         $inPlaceholders = implode(',', array_fill(0, count($allIds), '?'));
-        $stmtReset = $pdo->prepare("UPDATE ekspor_komoditas SET is_published = 0 WHERE id IN ($inPlaceholders)");
-        $stmtReset->execute($allIds);
+        $stmtReset = $pdo->prepare("UPDATE ekspor_komoditas SET is_published = 0 WHERE jenis_kegiatan = ? AND kategori = ? AND periode = ? AND id IN ($inPlaceholders)");
+        $stmtReset->execute(array_merge([$jenis, $kategori, $periode], $allIds));
 
         // Jika ada yang dicentang, set is_published = 1
         if (!empty($publishedIds)) {
             $inPub = implode(',', array_fill(0, count($publishedIds), '?'));
-            $stmtPub = $pdo->prepare("UPDATE ekspor_komoditas SET is_published = 1 WHERE id IN ($inPub)");
-            $stmtPub->execute($publishedIds);
+            $stmtPub = $pdo->prepare("UPDATE ekspor_komoditas SET is_published = 1 WHERE jenis_kegiatan = ? AND kategori = ? AND periode = ? AND id IN ($inPub)");
+            $stmtPub->execute(array_merge([$jenis, $kategori, $periode], $publishedIds));
         }
     }
 
@@ -95,6 +101,7 @@ try {
         'jenis' => $jenis,
         'kategori' => $kategori,
         'periode' => $periode,
+        'q' => $searchQuery,
         'msg' => 'sukses',
         'pub' => $publishedCount,
         'filter_mode' => $cal['mode'],
@@ -112,6 +119,7 @@ try {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
-    header("Location: kelola_data.php?jenis=" . urlencode($jenis) . "&kategori=" . urlencode($kategori) . "&error=" . urlencode($e->getMessage()));
+    error_log('SILAKOM update failed: ' . $e->getMessage());
+    header("Location: kelola_data.php?jenis=" . urlencode($jenis) . "&kategori=" . urlencode($kategori) . "&error=" . urlencode('Pengaturan atau status publikasi gagal disimpan.'));
     exit;
 }
