@@ -383,6 +383,18 @@ if ($compareMode) {
 }
 $urlParamsBase = $urlParamsExtra;
 if ($periodeFilter !== '') $urlParamsExtra .= '&periode=' . urlencode($periodeFilter);
+$topFilterUrls = [];
+foreach ([1, 3, 5, 10, 0] as $topOption) {
+    $params = $_GET;
+    $params['top_n'] = $topOption;
+    $topFilterUrls[$topOption] = '?' . http_build_query($params);
+}
+$sortFilterUrls = [];
+foreach (['nilai_ekspor', 'frekuensi'] as $sortOption) {
+    $params = $_GET;
+    $params['urutkan'] = $sortOption;
+    $sortFilterUrls[$sortOption] = '?' . http_build_query($params);
+}
 ?>
 
 <!-- Top Bar -->
@@ -444,20 +456,20 @@ if ($periodeFilter !== '') $urlParamsExtra .= '&periode=' . urlencode($periodeFi
 
             <label class="hero-select-field">
                 <span class="hero-filter-label">Tampilkan</span>
-                <select name="top_n" aria-label="Jumlah komoditas" onchange="const url = new URL(window.location); url.searchParams.set('top_n', this.value); window.location.href = url.toString()">
-                    <option value="1" <?= $topN === 1 ? 'selected' : '' ?>>Top 1</option>
-                    <option value="3" <?= $topN === 3 ? 'selected' : '' ?>>Top 3</option>
-                    <option value="5" <?= $topN === 5 ? 'selected' : '' ?>>Top 5</option>
-                    <option value="10" <?= $topN === 10 ? 'selected' : '' ?>>Top 10</option>
-                    <option value="0" <?= $topN === 0 ? 'selected' : '' ?>>Semua Data</option>
+                <select name="top_n" aria-label="Jumlah komoditas" onchange="window.location.href = this.value">
+                    <option value="<?= htmlspecialchars($topFilterUrls[1], ENT_QUOTES, 'UTF-8') ?>" <?= $topN === 1 ? 'selected' : '' ?>>Top 1</option>
+                    <option value="<?= htmlspecialchars($topFilterUrls[3], ENT_QUOTES, 'UTF-8') ?>" <?= $topN === 3 ? 'selected' : '' ?>>Top 3</option>
+                    <option value="<?= htmlspecialchars($topFilterUrls[5], ENT_QUOTES, 'UTF-8') ?>" <?= $topN === 5 ? 'selected' : '' ?>>Top 5</option>
+                    <option value="<?= htmlspecialchars($topFilterUrls[10], ENT_QUOTES, 'UTF-8') ?>" <?= $topN === 10 ? 'selected' : '' ?>>Top 10</option>
+                    <option value="<?= htmlspecialchars($topFilterUrls[0], ENT_QUOTES, 'UTF-8') ?>" <?= $topN === 0 ? 'selected' : '' ?>>Semua Data</option>
                 </select>
             </label>
 
             <label class="hero-select-field">
                 <span class="hero-filter-label">Urutkan</span>
-                <select name="urutkan" aria-label="Urutkan komoditas" onchange="const url = new URL(window.location); url.searchParams.set('urutkan', this.value); window.location.href = url.toString()">
-                    <option value="nilai_ekspor" <?= $urutan === 'nilai_ekspor' ? 'selected' : '' ?>>Nilai Barang</option>
-                    <option value="frekuensi" <?= $urutan === 'frekuensi' ? 'selected' : '' ?>>Frekuensi</option>
+                <select name="urutkan" aria-label="Urutkan komoditas" onchange="window.location.href = this.value">
+                    <option value="<?= htmlspecialchars($sortFilterUrls['nilai_ekspor'], ENT_QUOTES, 'UTF-8') ?>" <?= $urutan === 'nilai_ekspor' ? 'selected' : '' ?>>Nilai Barang</option>
+                    <option value="<?= htmlspecialchars($sortFilterUrls['frekuensi'], ENT_QUOTES, 'UTF-8') ?>" <?= $urutan === 'frekuensi' ? 'selected' : '' ?>>Frekuensi</option>
                 </select>
             </label>
 
