@@ -14,8 +14,7 @@ if (!in_array($kategori, ['hewan', 'ikan', 'tumbuhan'])) {
     $kategori = 'hewan';
 }
 
-$periodeFilter = is_string($_GET['periode'] ?? null) ? trim($_GET['periode']) : '';
-$searchQuery = is_string($_GET['q'] ?? null) ? trim($_GET['q']) : '';
+$periodeFilter = trim($_GET['periode'] ?? '');
 
 // Ambil setting saat ini sesuai jenis & kategori
 $stmtSet = $pdo->prepare("SELECT * FROM ekspor_settings WHERE jenis_kegiatan = ? AND kategori = ? LIMIT 1");
@@ -34,7 +33,7 @@ $setting = $stmtSet->fetch() ?: [
 $filterMode = 'bulan';
 
 // Ambil input kalender dari URL atau default setting
-$calInput = array_filter($_GET, 'is_scalar');
+$calInput = $_GET;
 if (!isset($_GET['thn_awal']) && !isset($_GET['tahun_awal']) && !isset($_GET['bln_awal']) && !isset($_GET['tgl_awal'])) {
     $calInput['thn_awal'] = $setting['tahun_awal'] ?? 2026;
     $calInput['thn_akhir'] = $setting['tahun_akhir'] ?? 2026;
@@ -63,26 +62,19 @@ if ($periodeFilter !== '') {
     }
 }
 
-// Query data sesuai periode and optional search text.
+// Query data sesuai filter kalender
 $sql = "SELECT * FROM ekspor_komoditas WHERE jenis_kegiatan = :jenis AND kategori = :kategori";
 $params = [':jenis' => $jenis, ':kategori' => $kategori];
 
 if ($periodeFilter !== '') {
     $sql .= " AND periode = :periode";
     $params[':periode'] = $periodeFilter;
-    if ($searchQuery !== '') {
-        $sql .= " AND (nama_komoditas LIKE :search_name OR nama_komoditas_lokal LIKE :search_local OR negara_tujuan LIKE :search_destination)";
-        $searchTerm = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $searchQuery) . '%';
-        $params[':search_name'] = $searchTerm;
-        $params[':search_local'] = $searchTerm;
-        $params[':search_destination'] = $searchTerm;
-    }
 } else {
     $sql .= " AND 1 = 0";
 }
 
 $urutanKolom = ($setting['urutkan_berdasarkan'] === 'frekuensi') ? 'frekuensi' : 'nilai_ekspor';
-$sql .= " ORDER BY is_published DESC, {$urutanKolom} DESC, " . ($urutanKolom === 'frekuensi' ? 'nilai_ekspor' : 'frekuensi') . " DESC";
+$sql .= " ORDER BY is_published DESC, nilai_ekspor DESC, frekuensi DESC";
 
 $stmtData = $pdo->prepare($sql);
 $stmtData->execute($params);
@@ -218,7 +210,6 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
             <input type="hidden" name="jenis_kegiatan" value="<?= htmlspecialchars($jenis) ?>">
             <input type="hidden" name="kategori" value="<?= htmlspecialchars($kategori) ?>">
             <input type="hidden" name="periode" value="<?= htmlspecialchars($periodeFilter) ?>">
-            <input type="hidden" name="q" value="<?= htmlspecialchars($searchQuery) ?>">
             <input type="hidden" name="filter_mode" value="<?= htmlspecialchars($cal['mode']) ?>">
             <input type="hidden" name="thn_awal" value="<?= htmlspecialchars($cal['thn_awal']) ?>">
             <input type="hidden" name="thn_akhir" value="<?= htmlspecialchars($cal['thn_akhir']) ?>">
@@ -278,18 +269,13 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
                     <div style="display: flex; align-items: center; gap: 10px; margin-left: auto;">
                         <div style="display: flex; align-items: center; gap: 6px;">
                             <label for="periodeFilter" style="font-weight: 600; color: var(--ink-soft);">Periode:</label>
-                            <select id="periodeFilter" class="field-input" onchange="navigateDataFilter()" style="width: 230px; padding: 7px 10px; font-size: 12px;">
+                            <select id="periodeFilter" class="field-input" onchange="window.location.href = 'kelola_data.php?jenis=<?= urlencode($jenis) ?>&kategori=<?= urlencode($kategori) ?>&periode=' + encodeURIComponent(this.value)" style="width: 230px; padding: 7px 10px; font-size: 12px;">
                                 <option value="">Pilih periode</option>
                                 <?php foreach ($periodeOptions as $periodeOption): ?>
                                     <?php $periodeLabel = format_label_periode_kode($periodeOption) ?: $periodeOption; ?>
                                     <option value="<?= htmlspecialchars($periodeOption) ?>" <?= $periodeFilter === $periodeOption ? 'selected' : '' ?>><?= htmlspecialchars($periodeLabel) ?></option>
                                 <?php endforeach; ?>
                             </select>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 6px;">
-                            <label for="dataSearch" style="font-weight: 600; color: var(--ink-soft);">Cari:</label>
-                            <input id="dataSearch" type="search" class="field-input" value="<?= htmlspecialchars($searchQuery) ?>" placeholder="Komoditas / tujuan" onkeydown="if (event.key === 'Enter') { event.preventDefault(); navigateDataFilter(); }" style="width: 180px; padding: 7px 10px; font-size: 12px;">
-                            <button type="button" class="btn btn-secondary btn-sm" onclick="navigateDataFilter()">Cari</button>
                         </div>
                         <a href="tambah_data.php?jenis=<?= urlencode($jenis) ?>&kategori=<?= urlencode($kategori) ?>" class="btn btn-primary btn-sm">
                             <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v14M5 12h14"></path></svg>
@@ -369,7 +355,6 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
                                                 <input type="hidden" name="jenis" value="<?= htmlspecialchars($jenis) ?>">
                                                 <input type="hidden" name="kategori" value="<?= htmlspecialchars($kategori) ?>">
                                                 <input type="hidden" name="periode" value="<?= htmlspecialchars($row['periode'] ?? '') ?>">
-                                                <input type="hidden" name="q" value="<?= htmlspecialchars($searchQuery) ?>">
                                                 <button type="submit" style="color: var(--danger); background: none; border: 0; display: inline-flex; padding: 4px; cursor: pointer;" title="Hapus">
                                                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                                                 </button>
@@ -405,16 +390,6 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
     </div>
 
     <script>
-    function navigateDataFilter() {
-        const params = new URLSearchParams({
-            jenis: <?= json_encode($jenis, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
-            kategori: <?= json_encode($kategori, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
-            periode: document.getElementById('periodeFilter').value,
-            q: document.getElementById('dataSearch').value.trim()
-        });
-        window.location.href = 'kelola_data.php?' + params.toString();
-    }
-
     function toggleAllCheckboxes(state) {
         document.querySelectorAll('.item-checkbox').forEach(cb => {
             cb.checked = state;

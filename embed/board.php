@@ -1,7 +1,6 @@
 <?php
 // embed/board.php - Master Template Board Infografis Karantina Kalsel (Format PPT Canva)
 require_once __DIR__ . '/../config/koneksi.php';
-require_once __DIR__ . '/../includes/volume_metrics.php';
 
 $assetPath = $assetPath ?? '';
 $showControls = $show_controls ?? (isset($_GET['nav']) && $_GET['nav'] == 1);
@@ -74,7 +73,7 @@ if ($compareMode && $periodeA !== '' && $periodeB !== '') {
         }
         $comparison[$period] = [
             'nilai' => (float)array_sum(array_column($rowsForPeriod, 'nilai_ekspor')),
-            'volume' => aggregate_volume_rows($rowsForPeriod),
+            'volume' => (float)array_sum(array_column($rowsForPeriod, 'volume')),
             'frekuensi' => (int)array_sum(array_column($rowsForPeriod, 'frekuensi')),
             'negara' => count($countries)
         ];
@@ -128,13 +127,14 @@ if ($topN > 0 && count($data) > $topN) {
 // 3. Hitung Metrik dari seluruh data yang dipilih, bukan hanya baris yang ditampilkan
 $totalNilai = (float)array_sum(array_column($allData, 'nilai_ekspor'));
 $totalFrekuensi = (int)array_sum(array_column($allData, 'frekuensi'));
-$volumeByUnit = aggregate_volume_rows($allData);
-$primaryVolumeKey = key($volumeByUnit);
-$primaryVolume = $primaryVolumeKey !== null
-    ? $volumeByUnit[$primaryVolumeKey]
-    : ['value' => 0.0, 'unit' => 'Kilogram'];
-$primaryVolumeKey = $primaryVolumeKey ?? 'mass_kg';
-$primaryVolumeDisplay = describe_volume_group($primaryVolumeKey, $primaryVolume);
+$volumeByUnit = [];
+foreach ($allData as $row) {
+    $unit = trim((string)($row['satuan'] ?? '')) ?: 'Kilogram';
+    $volumeByUnit[$unit] = ($volumeByUnit[$unit] ?? 0) + (float)$row['volume'];
+}
+arsort($volumeByUnit);
+$primaryVolume = (float)(reset($volumeByUnit) ?: 0);
+$primaryVolumeUnit = (string)(key($volumeByUnit) ?: 'Kilogram');
 $secondaryVolumes = array_slice($volumeByUnit, 1, null, true);
 
 $kpiNilai = format_kpi_nilai($totalNilai);
@@ -267,6 +267,31 @@ if (!empty($data)) {
 $colors = ['#0f766e', '#2563eb', '#b45309', '#64748b', '#7c3aed'];
 
 
+function formatVolumeOtomatis($volume, $satuan) {
+    $volume = (float) $volume;
+    $satuanAsli = trim((string) $satuan);
+    $satuanLower = strtolower($satuanAsli);
+
+    // Konversi Kg menjadi Ton jika mencapai 1.000 Kg
+    if (
+        in_array($satuanLower, ['kg', 'kilogram', 'kilograms'])
+        && $volume >= 1000
+    ) {
+        return [
+            'angka' => format_angka($volume / 1000, 2),
+            'satuan' => 'Ton'
+        ];
+    }
+
+    return [
+        'angka' => format_angka(
+            $volume,
+            fmod($volume, 1) == 0.0 ? 0 : 2
+        ),
+        'satuan' => $satuanAsli !== '' ? $satuanAsli : 'Kilogram'
+    ];
+}
+
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -375,14 +400,10 @@ if ($periodeFilter !== '') $urlParamsExtra .= '&periode=' . urlencode($periodeFi
         <?php
         $comparisonMetrics = [
             ['label' => 'Nilai Ekspor', 'key' => 'nilai', 'format' => fn($value) => format_rupiah_singkat($value)],
-            ['label' => 'Volume per satuan', 'key' => 'volume', 'format' => fn($value) => format_volume_groups($value)],
+            ['label' => 'Volume', 'key' => 'volume', 'format' => fn($value) => format_angka($value, 1)],
             ['label' => 'Frekuensi', 'key' => 'frekuensi', 'format' => fn($value) => format_angka($value)],
             ['label' => 'Negara Tujuan', 'key' => 'negara', 'format' => fn($value) => format_angka($value)]
         ];
-        $comparisonVolumeDatasets = build_volume_comparison_datasets(
-            $comparison[$periodeA]['volume'],
-            $comparison[$periodeB]['volume']
-        );
         ?>
         <section class="board-comparison" aria-label="Perbandingan periode">
             <div class="board-comparison-header">
@@ -415,15 +436,7 @@ if ($periodeFilter !== '') $urlParamsExtra .= '&periode=' . urlencode($periodeFi
                 <?php foreach ($comparisonMetrics as $metric):
                     $valueA = $comparison[$periodeA][$metric['key']];
                     $valueB = $comparison[$periodeB][$metric['key']];
-                    if ($metric['key'] === 'volume') {
-                        $change = compare_volume_groups($valueA, $valueB);
-                    } else {
-                        $percentChange = $valueA == 0 ? ($valueB == 0 ? 0 : null) : (($valueB - $valueA) / abs($valueA)) * 100;
-                        $change = [
-                            'label' => $percentChange === null ? 'Baru' : sprintf('%+.1f%%', $percentChange),
-                            'direction' => $percentChange !== null && $percentChange < 0 ? 'is-down' : 'is-up'
-                        ];
-                    }
+                    $change = $valueA == 0 ? ($valueB == 0 ? 0 : null) : (($valueB - $valueA) / abs($valueA)) * 100;
                 ?>
                     <div class="board-comparison-card">
                         <span><?= htmlspecialchars($metric['label']) ?></span>
@@ -437,7 +450,7 @@ if ($periodeFilter !== '') $urlParamsExtra .= '&periode=' . urlencode($periodeFi
                                 <strong><?= $metric['format']($valueB) ?></strong>
                             </div>
                         </div>
-                        <em class="<?= $change['direction'] ?>"><?= htmlspecialchars($change['label']) ?></em>
+                        <em class="<?= $change !== null && $change < 0 ? 'is-down' : 'is-up' ?>"><?= $change === null ? 'Baru' : sprintf('%+.1f%%', $change) ?></em>
                     </div>
                 <?php endforeach; ?>
             </div>
@@ -445,26 +458,26 @@ if ($periodeFilter !== '') $urlParamsExtra .= '&periode=' . urlencode($periodeFi
                 <h3>Grafik Perbandingan</h3>
                 <div class="comparison-chart-grid">
                     <div class="comparison-chart-card"><span>Nilai Ekspor (Miliar Rp)</span><div class="comparison-chart-canvas"><canvas id="comparisonChartNilai"></canvas></div></div>
-                    <div class="comparison-chart-card"><span>Volume per satuan (massa ditampilkan dalam kilogram ekuivalen)</span><div class="comparison-chart-canvas"><canvas id="comparisonChartVolume"></canvas></div></div>
+                    <div class="comparison-chart-card"><span>Volume</span><div class="comparison-chart-canvas"><canvas id="comparisonChartVolume"></canvas></div></div>
                     <div class="comparison-chart-card"><span>Frekuensi</span><div class="comparison-chart-canvas"><canvas id="comparisonChartFrekuensi"></canvas></div></div>
                     <div class="comparison-chart-card"><span>Negara Tujuan</span><div class="comparison-chart-canvas"><canvas id="comparisonChartNegara"></canvas></div></div>
                 </div>
             </div>
             <script>
-            const comparisonLabels = [<?= json_encode($comparisonLabelA, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>, <?= json_encode($comparisonLabelB, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>];
+            const comparisonLabels = [<?= json_encode($comparisonLabelA) ?>, <?= json_encode($comparisonLabelB) ?>];
             const comparisonCharts = [
-                { id: 'comparisonChartNilai', data: [<?= $comparison[$periodeA]['nilai'] / 1000000000 ?>, <?= $comparison[$periodeB]['nilai'] / 1000000000 ?>] },
-                { id: 'comparisonChartVolume', datasets: <?= json_encode($comparisonVolumeDatasets, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?> },
-                { id: 'comparisonChartFrekuensi', data: [<?= $comparison[$periodeA]['frekuensi'] ?>, <?= $comparison[$periodeB]['frekuensi'] ?>] },
-                { id: 'comparisonChartNegara', data: [<?= $comparison[$periodeA]['negara'] ?>, <?= $comparison[$periodeB]['negara'] ?>] }
+                ['comparisonChartNilai', [<?= $comparison[$periodeA]['nilai'] / 1000000000 ?>, <?= $comparison[$periodeB]['nilai'] / 1000000000 ?>]],
+                ['comparisonChartVolume', [<?= $comparison[$periodeA]['volume'] ?>, <?= $comparison[$periodeB]['volume'] ?>]],
+                ['comparisonChartFrekuensi', [<?= $comparison[$periodeA]['frekuensi'] ?>, <?= $comparison[$periodeB]['frekuensi'] ?>]],
+                ['comparisonChartNegara', [<?= $comparison[$periodeA]['negara'] ?>, <?= $comparison[$periodeB]['negara'] ?>]]
             ];
             comparisonCharts.forEach(function(chartItem) {
-                new Chart(document.getElementById(chartItem.id), {
+                new Chart(document.getElementById(chartItem[0]), {
                     type: 'bar',
                     data: {
                         labels: comparisonLabels,
-                        datasets: chartItem.datasets || [{
-                            data: chartItem.data,
+                        datasets: [{
+                            data: chartItem[1],
                             backgroundColor: ['#2563eb', '#0f766e'],
                             borderRadius: 5,
                             barPercentage: 0.55
@@ -473,19 +486,7 @@ if ($periodeFilter !== '') $urlParamsExtra .= '&periode=' . urlencode($periodeFi
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        plugins: {
-                            legend: { display: Boolean(chartItem.datasets) },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(ctx) {
-                                        const value = Number(ctx.raw || 0).toLocaleString('id-ID');
-                                        return chartItem.datasets
-                                            ? ' ' + ctx.dataset.label + ': ' + value
-                                            : ' ' + value;
-                                    }
-                                }
-                            }
-                        },
+                        plugins: { legend: { display: false } },
                         scales: {
                             y: { beginAtZero: true, grid: { color: '#e5e7eb' } },
                             x: { grid: { display: false }, ticks: { font: { size: 9 } } }
@@ -530,13 +531,22 @@ if ($periodeFilter !== '') $urlParamsExtra .= '&periode=' . urlencode($periodeFi
                 </div>
                 <div class="kpi-content-canva">
                     <div class="kpi-title-canva">Volume (Netto)</div>                   
+                    <?php
+                    $volumeTampilan = formatVolumeOtomatis(
+                        $primaryVolume,
+                        $primaryVolumeUnit
+                    );
+                    ?>
+
                     <div class="kpi-number-canva teal">
-                        <?= htmlspecialchars($primaryVolumeDisplay['amount']) ?>
+                        <?= $volumeTampilan['angka'] ?>
                     </div>
-                    <div class="kpi-unit-canva teal"><?= htmlspecialchars($primaryVolumeDisplay['unit']) ?></div>
+                    <div class="kpi-unit-canva teal">
+                        <?= htmlspecialchars($volumeTampilan['satuan']) ?>
+                    </div>
                     <div class="kpi-volume-secondary">
-                        <?php foreach ($secondaryVolumes as $unitKey => $volumeGroup): ?>
-                            <span>dan <?= htmlspecialchars(format_volume_group($unitKey, $volumeGroup)) ?></span>
+                        <?php foreach ($secondaryVolumes as $unit => $volume): ?>
+                            <span>dan <?= format_angka($volume, fmod((float)$volume, 1) === 0.0 ? 0 : 2) ?> <?= htmlspecialchars($unit) ?></span>
                         <?php endforeach; ?>
                     </div>
                 </div>
@@ -702,7 +712,7 @@ if ($periodeFilter !== '') $urlParamsExtra .= '&periode=' . urlencode($periodeFi
         <script>
         const rawLabels = <?= json_encode(array_map(function($r) use ($kategori) {
             return ($kategori === 'ikan' && !empty($r['nama_komoditas_lokal'])) ? $r['nama_komoditas_lokal'] : $r['nama_komoditas'];
-        }, $data), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+        }, $data)) ?>;
         const rawValues = <?= json_encode(array_map('floatval', array_column($data, 'nilai_ekspor'))) ?>;
         const colors = <?= json_encode($colors) ?>;
 
