@@ -15,6 +15,12 @@ $jenis = $_GET['jenis'] ?? ($_GET['kegiatan'] ?? 'domestik_masuk');
 if (!in_array($jenis, ['ekspor', 'impor', 'domestik_keluar', 'domestik_masuk'])) {
     $jenis = 'domestik_masuk';
 }
+$isDomestik = in_array($jenis, ['domestik_keluar', 'domestik_masuk'], true);
+$fieldTujuan = match ($jenis) {
+    'domestik_keluar' => 'daerah_tujuan',
+    'domestik_masuk' => 'daerah_asal',
+    default => 'negara_tujuan',
+};
 
 // 1. Ambil Setting
 $stmtSet = $pdo->prepare("SELECT * FROM ekspor_settings WHERE jenis_kegiatan = ? AND kategori = ? LIMIT 1");
@@ -71,7 +77,7 @@ $comparisonLabelB = format_label_periode_kode($periodeB) ?: $periodeB;
 $comparison = null;
 $comparisonMonthly = [];
 if ($compareMode && $periodeA !== '' && $periodeB !== '') {
-    $compareStmt = $pdo->prepare("SELECT periode, nilai_ekspor, volume, frekuensi, negara_tujuan FROM ekspor_komoditas WHERE jenis_kegiatan = ? AND kategori = ? AND is_published = 1 AND periode IN (?, ?)");
+    $compareStmt = $pdo->prepare("SELECT periode, nilai_ekspor, volume, frekuensi, {$fieldTujuan} AS lokasi_tujuan FROM ekspor_komoditas WHERE jenis_kegiatan = ? AND kategori = ? AND is_published = 1 AND periode IN (?, ?)");
     $compareStmt->execute([$jenis, $kategori, $periodeA, $periodeB]);
     $comparisonRows = $compareStmt->fetchAll();
     $comparison = [];
@@ -79,7 +85,7 @@ if ($compareMode && $periodeA !== '' && $periodeB !== '') {
         $rowsForPeriod = array_filter($comparisonRows, fn($row) => $row['periode'] === $period);
         $countries = [];
         foreach ($rowsForPeriod as $row) {
-            $parts = preg_split('/\s*(?:,|;|\/|\|)\s*/', (string)($row['negara_tujuan'] ?? ''));
+            $parts = preg_split('/\s*(?:,|;|\/|\|)\s*/', (string)($row['lokasi_tujuan'] ?? ''));
             foreach ($parts as $country) {
                 $country = trim($country);
                 if ($country !== '') $countries[strtolower($country)] = $country;
@@ -96,7 +102,7 @@ if ($compareMode && $periodeA !== '' && $periodeB !== '') {
     $yearA = substr($periodeA, 0, 4);
     $yearB = substr($periodeB, 0, 4);
     $comparisonYears = array_values(array_unique([$yearA, $yearB]));
-    $trendStmt = $pdo->prepare("SELECT periode, nilai_ekspor, volume, frekuensi, negara_tujuan
+    $trendStmt = $pdo->prepare("SELECT periode, nilai_ekspor, volume, frekuensi, {$fieldTujuan} AS lokasi_tujuan
         FROM ekspor_komoditas
         WHERE jenis_kegiatan = ? AND kategori = ? AND is_published = 1
             AND periode REGEXP '^[0-9]{4}-[0-9]{2}$'
@@ -121,7 +127,7 @@ if ($compareMode && $periodeA !== '' && $periodeB !== '') {
         $comparisonMonthly[$year]['nilai'][$month] += (float)$row['nilai_ekspor'];
         $comparisonMonthly[$year]['volume'][$month] += (float)$row['volume'];
         $comparisonMonthly[$year]['frekuensi'][$month] += (int)$row['frekuensi'];
-        $parts = preg_split('/\s*(?:,|;|\/|\|)\s*/', (string)($row['negara_tujuan'] ?? ''));
+        $parts = preg_split('/\s*(?:,|;|\/|\|)\s*/', (string)($row['lokasi_tujuan'] ?? ''));
         foreach ($parts as $country) {
             $country = trim($country);
             if ($country !== '') {
@@ -252,17 +258,19 @@ $normalizeCountryName = function ($name) use ($countryAliases) {
 $uniqueDest = [];
 $destValues = [];
 foreach ($allData as $r) {
-    if (!empty($r['negara_tujuan'])) {
-        $parts = preg_split('/\s*(?:,|;|\/|\|)\s*/', $r['negara_tujuan']);
+    if (!empty($r[$fieldTujuan])) {
+        $parts = preg_split('/\s*(?:,|;|\/|\|)\s*/', (string)$r[$fieldTujuan]);
         $validParts = array_values(array_filter($parts, fn($x) => trim((string)$x) !== ''));
         foreach ($validParts as $p) {
-            $countryName = $normalizeCountryName($p);
-            if ($countryName === '') {
+            $destinationName = $isDomestik
+                ? preg_replace('/\s+/', ' ', trim((string)$p))
+                : $normalizeCountryName($p);
+            if ($destinationName === '') {
                 continue;
             }
-            $countryKey = strtolower($countryName);
-            $uniqueDest[$countryKey] = $countryName;
-            $destValues[$countryKey] = ($destValues[$countryKey] ?? 0) + (float)$r['nilai_ekspor'] / max(1, count($validParts));
+            $destinationKey = strtolower($destinationName);
+            $uniqueDest[$destinationKey] = $destinationName;
+            $destValues[$destinationKey] = ($destValues[$destinationKey] ?? 0) + (float)$r['nilai_ekspor'] / max(1, count($validParts));
         }
     }
 }
@@ -270,7 +278,6 @@ $daftarDest = array_values($uniqueDest);
 $jumlahWilayah = count($daftarDest);
 
 // Subteks Wilayah
-$isDomestik = in_array($jenis, ['domestik_keluar', 'domestik_masuk']);
 $countryFlagCodes = [
     'china' => 'cn', 'tiongkok' => 'cn', 'hong kong' => 'hk', 'taiwan' => 'tw',
     'singapura' => 'sg', 'singapore' => 'sg', 'jepang' => 'jp', 'japan' => 'jp',
@@ -485,7 +492,7 @@ if ($periodeFilter !== '') $urlParamsExtra .= '&periode=' . urlencode($periodeFi
             ['label' => 'Nilai ' . $labelKegiatan, 'key' => 'nilai', 'format' => fn($value) => format_rupiah_singkat($value)],
             ['label' => 'Volume', 'key' => 'volume', 'format' => fn($value) => format_angka($value, 1)],
             ['label' => 'Frekuensi', 'key' => 'frekuensi', 'format' => fn($value) => format_angka($value)],
-            ['label' => 'Negara Tujuan', 'key' => 'negara', 'format' => fn($value) => format_angka($value)]
+            ['label' => $isDomestik ? get_label_arah($jenis) : 'Negara Tujuan', 'key' => 'negara', 'format' => fn($value) => format_angka($value)]
         ];
         ?>
         <section class="board-comparison" aria-label="Perbandingan periode">
@@ -545,7 +552,7 @@ if ($periodeFilter !== '') $urlParamsExtra .= '&periode=' . urlencode($periodeFi
                     <div class="comparison-chart-card"><span>Nilai <?= htmlspecialchars($labelKegiatan) ?> (Miliar Rp)</span><div class="comparison-chart-canvas"><canvas id="comparisonChartNilai"></canvas></div></div>
                     <div class="comparison-chart-card"><span>Volume</span><div class="comparison-chart-canvas"><canvas id="comparisonChartVolume"></canvas></div></div>
                     <div class="comparison-chart-card"><span>Frekuensi</span><div class="comparison-chart-canvas"><canvas id="comparisonChartFrekuensi"></canvas></div></div>
-                    <div class="comparison-chart-card"><span>Negara Tujuan</span><div class="comparison-chart-canvas"><canvas id="comparisonChartNegara"></canvas></div></div>
+                    <div class="comparison-chart-card"><span><?= htmlspecialchars($isDomestik ? get_label_arah($jenis) : 'Negara Tujuan') ?></span><div class="comparison-chart-canvas"><canvas id="comparisonChartNegara"></canvas></div></div>
                 </div>
             </div>
             <script>
