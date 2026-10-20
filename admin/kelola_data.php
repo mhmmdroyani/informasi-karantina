@@ -292,12 +292,16 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
                                 <th style="width: 40px; text-align: center;">
                                     <input type="checkbox" id="checkAllHead" onchange="toggleAllCheckboxes(this.checked)">
                                 </th>
+                                <th>Klasifikasi</th>
                                 <th>Komoditas</th>
                                 <th>Periode</th>
                                 <th style="text-align: right;">Frekuensi</th>
                                 <th style="text-align: right;">Volume</th>
-                                <th style="text-align: right;"><?= htmlspecialchars($labelNilai) ?></th>
-                                <th><?= htmlspecialchars($labelArah) ?></th>
+                                <th>Satuan</th>
+                                <th style="text-align: right;">Harga Barang (Rp)</th>
+                                <th>Daerah Asal</th>
+                                <th>Daerah Tujuan</th>
+                                <th>Negara Tujuan</th>
                                 <th style="text-align: center;">Status</th>
                                 <th style="text-align: center;">Aksi</th>
                             </tr>
@@ -305,7 +309,7 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
                         <tbody>
                             <?php if (empty($dataItems)): ?>
                                 <tr>
-                                    <td colspan="9" style="padding: 48px 12px; text-align: center; color: var(--ink-muted);">
+                                    <td colspan="13" style="padding: 48px 12px; text-align: center; color: var(--ink-muted);">
                                         <p style="font-weight: 600; color: var(--ink-soft); font-size: 13px;">Belum ada data <?= strtolower($labelKegiatan) ?> untuk komoditas <?= $kategori ?>.</p>
                                         <p style="font-size: 12px; margin: 4px 0 14px;">Silakan upload file Excel melalui form upload.</p>
                                         <a href="upload_<?= $kategori ?>.php?jenis=<?= $jenis ?>" class="btn btn-primary btn-sm">Upload Excel <?= ucfirst($kategori) ?> Sekarang</a>
@@ -318,6 +322,7 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
                                             <input type="hidden" name="all_ids[]" value="<?= $row['id'] ?>">
                                             <input type="checkbox" name="published_ids[]" value="<?= $row['id'] ?>" <?= $row['is_published'] ? 'checked' : '' ?> class="item-checkbox">
                                         </td>
+                                        <td><?= htmlspecialchars($row['klasifikasi'] ?? '-') ?></td>
                                         <td>
                                             <div style="font-weight: 600; color: var(--ink);"><?= htmlspecialchars($row['nama_komoditas']) ?></div>
                                             <?php if (!empty($row['nama_komoditas_lokal'])): ?>
@@ -325,15 +330,22 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
                                             <?php endif; ?>
                                         </td>
                                         <td style="white-space: nowrap;">
-                                            <span class="badge badge-neutral"><?= htmlspecialchars($row['periode']) ?></span>
+                                            <span class="badge badge-neutral"><?= htmlspecialchars(format_label_periode_kode($row['periode']) ?: $row['periode']) ?></span>
                                             <?php if (!empty($row['tanggal_mulai']) && !empty($row['tanggal_selesai'])): ?>
                                                 <div style="font-size: 10px; color: var(--ink-muted); margin-top: 3px;"><?= date('d/m/Y', strtotime($row['tanggal_mulai'])) ?> s/d <?= date('d/m/Y', strtotime($row['tanggal_selesai'])) ?></div>
                                             <?php endif; ?>
                                         </td>
                                         <td style="text-align: right;"><?= number_format($row['frekuensi'], 0, ',', '.') ?> <span style="color: var(--ink-muted); font-size: 10px;">kali</span></td>
-                                        <td style="text-align: right;"><?= number_format($row['volume'], 2, ',', '.') ?> <span style="color: var(--ink-muted); font-size: 10px;"><?= htmlspecialchars($row['satuan']) ?></span></td>
+                                        <td style="text-align: right;"><?= number_format($row['volume'], 2, ',', '.') ?></td>
+                                        <td><?= htmlspecialchars($row['satuan'] ?? '-') ?></td>
                                         <td style="text-align: right; color: var(--brand); font-weight: 600; white-space: nowrap;">Rp <?= number_format($row['nilai_ekspor'], 0, ',', '.') ?></td>
-                                        <td style="max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="<?= htmlspecialchars($row['negara_tujuan'] ?? '') ?>">
+                                        <td style="max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="<?= htmlspecialchars($row['daerah_asal'] ?? '') ?>">
+                                            <?= htmlspecialchars($row['daerah_asal'] ?? '-') ?>
+                                        </td>
+                                        <td style="max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="<?= htmlspecialchars($row['daerah_tujuan'] ?? '') ?>">
+                                            <?= htmlspecialchars($row['daerah_tujuan'] ?? '-') ?>
+                                        </td>
+                                        <td style="max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="<?= htmlspecialchars($row['negara_tujuan'] ?? '') ?>">
                                             <?= htmlspecialchars($row['negara_tujuan'] ?? '-') ?>
                                         </td>
                                         <td style="text-align: center; white-space: nowrap;">
