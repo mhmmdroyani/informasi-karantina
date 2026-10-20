@@ -36,14 +36,6 @@ $setting = $stmtSet->fetch() ?: [
 
 $topN = (int)($setting['top_n'] ?? 5);
 $urutan = (($setting['urutkan_berdasarkan'] ?? '') === 'frekuensi') ? 'frekuensi' : 'nilai_ekspor';
-$requestedTopN = filter_var($_GET['top_n'] ?? null, FILTER_VALIDATE_INT);
-if ($requestedTopN !== null && $requestedTopN !== false && in_array($requestedTopN, [0, 1, 3, 5, 10], true)) {
-    $topN = $requestedTopN;
-}
-$requestedSort = $_GET['urutkan'] ?? '';
-if (in_array($requestedSort, ['nilai_ekspor', 'frekuensi'], true)) {
-    $urutan = $requestedSort;
-}
 $periodeFilter = trim($_GET['periode'] ?? '');
 $periodeStmt = $pdo->prepare("SELECT DISTINCT periode FROM ekspor_komoditas WHERE jenis_kegiatan = ? AND kategori = ? AND is_published = 1 ORDER BY periode ASC");
 $periodeStmt->execute([$jenis, $kategori]);
@@ -58,13 +50,16 @@ if ($periodeFilter !== '') {
     if ($periodSetting) {
         $setting = array_merge($setting, $periodSetting);
         $topN = (int)($setting['top_n'] ?? 5);
-        if (!array_key_exists('top_n', $_GET)) {
-            $topN = (int)($setting['top_n'] ?? 5);
-        }
-        if (!array_key_exists('urutkan', $_GET)) {
-            $urutan = (($setting['urutkan_berdasarkan'] ?? '') === 'frekuensi') ? 'frekuensi' : 'nilai_ekspor';
-        }
+        $urutan = (($setting['urutkan_berdasarkan'] ?? '') === 'frekuensi') ? 'frekuensi' : 'nilai_ekspor';
     }
+}
+$requestedTopN = filter_var($_GET['top_n'] ?? null, FILTER_VALIDATE_INT);
+if ($requestedTopN !== false && $requestedTopN !== null && in_array($requestedTopN, [0, 1, 3, 5, 10], true)) {
+    $topN = $requestedTopN;
+}
+$requestedSort = $_GET['urutkan'] ?? '';
+if (is_string($requestedSort) && in_array($requestedSort, ['nilai_ekspor', 'frekuensi'], true)) {
+    $urutan = $requestedSort;
 }
 $compareMode = $comparisonPage || (isset($_GET['banding']) && $_GET['banding'] === '1');
 $periodeA = trim($_GET['periode_a'] ?? ($periodeOptions[0] ?? ''));
@@ -177,7 +172,8 @@ if ($periodeFilter !== '') {
 } else {
     $sql .= " AND 1 = 0";
 }
-$sql .= " ORDER BY {$urutan} DESC";
+$kolomUrutanSekunder = $urutan === 'frekuensi' ? 'nilai_ekspor' : 'frekuensi';
+$sql .= " ORDER BY {$urutan} DESC, {$kolomUrutanSekunder} DESC, nama_komoditas ASC";
 $stmtData = $pdo->prepare($sql);
 $stmtData->execute($queryParams);
 $allData = $stmtData->fetchAll();
