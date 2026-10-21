@@ -417,32 +417,30 @@ $filterParams = [
     'periode_a' => $periodeA,
     'periode_b' => $periodeB
 ];
-$comparisonPageUrl = $assetPath . 'perbandingan.php?' . http_build_query(array_merge(
-    ['jenis' => $jenis, 'kategori' => $kategori],
-    $filterParams
-));
+$boardFilterParams = array_merge(['jenis' => $jenis, 'kategori' => $kategori], $filterParams);
+$comparisonPageUrl = $assetPath . 'perbandingan.php?' . http_build_query($boardFilterParams);
 $urlParamsExtra = '&' . http_build_query($filterParams);
 $topFilterUrls = [];
 foreach ([1, 3, 5, 10, 0] as $topOption) {
-    $params = $filterParams;
+    $params = $boardFilterParams;
     $params['top_n'] = $topOption;
     $topFilterUrls[$topOption] = '?' . http_build_query($params);
 }
 $sortFilterUrls = [];
 foreach (['nilai_ekspor', 'frekuensi'] as $sortOption) {
-    $params = $filterParams;
+    $params = $boardFilterParams;
     $params['urutkan'] = $sortOption;
     $sortFilterUrls[$sortOption] = '?' . http_build_query($params);
 }
 $periodeAUrls = [];
 foreach ($periodeOptions as $periodOption) {
-    $params = $filterParams;
+    $params = $boardFilterParams;
     $params['periode_a'] = $periodOption;
     $periodeAUrls[$periodOption] = '?' . http_build_query($params);
 }
 $periodeBUrls = [];
 foreach ($periodeOptions as $periodOption) {
-    $params = $filterParams;
+    $params = $boardFilterParams;
     $params['periode_b'] = $periodOption;
     $periodeBUrls[$periodOption] = '?' . http_build_query($params);
 }
@@ -552,7 +550,7 @@ foreach ($periodeOptions as $periodOption) {
             </label>
 
             <?php if ($comparisonPage): ?>
-            <a href="<?= $assetPath ?>../index.php?<?= htmlspecialchars(http_build_query(array_merge(['jenis' => $jenis, 'kategori' => $kategori], $filterParams)), ENT_QUOTES, 'UTF-8') ?>" class="board-compare-btn">Kembali ke Board</a>
+            <a href="<?= $assetPath ?>../index.php?<?= htmlspecialchars(http_build_query($boardFilterParams), ENT_QUOTES, 'UTF-8') ?>" class="board-compare-btn">Kembali ke Board</a>
             <?php endif; ?>
 
         </div>
