@@ -12,17 +12,22 @@ foreach (['host', 'name', 'user', 'password'] as $key) {
     }
 }
 
-$dbHost = $databaseConfig['host'];
-$dbName = $databaseConfig['name'];
-$dbUser = $databaseConfig['user'];
-$dbPass = $databaseConfig['password'];
+function create_database_connection(array $databaseConfig): PDO
+{
+    return new PDO(
+        "mysql:host={$databaseConfig['host']};dbname={$databaseConfig['name']};charset=utf8mb4",
+        $databaseConfig['user'],
+        $databaseConfig['password'],
+        [
+            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES   => false,
+        ]
+    );
+}
 
 try {
-    $pdo = new PDO("mysql:host={$dbHost};dbname={$dbName};charset=utf8mb4", $dbUser, $dbPass, [
-        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        PDO::ATTR_EMULATE_PREPARES   => false,
-    ]);
+    $pdo = create_database_connection($databaseConfig);
 } catch (PDOException $e) {
     die("Koneksi database gagal: " . $e->getMessage());
 }

@@ -22,7 +22,7 @@ if (!empty($_GET['error'])) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    handle_raw_excel_upload($pdo, 'hewan');
+    handle_raw_excel_upload($pdo, 'hewan', $databaseConfig);
 }
 ?>
 <!DOCTYPE html>

@@ -21,7 +21,7 @@ if (!empty($_GET['error'])) {
     $error = (string)$_GET['error'];
 }
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    handle_raw_excel_upload($pdo, 'tumbuhan');
+    handle_raw_excel_upload($pdo, 'tumbuhan', $databaseConfig);
 }
 ?>
 <!DOCTYPE html>

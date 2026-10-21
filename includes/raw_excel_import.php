@@ -225,7 +225,7 @@ function insert_raw_aggregated_entries($pdo, $jenis, $kategori, $periode, $entri
     return count($entries);
 }
 
-function handle_raw_excel_upload($pdo, $kategori)
+function handle_raw_excel_upload($pdo, $kategori, array $databaseConfig)
 {
     require_csrf();
 
@@ -260,6 +260,7 @@ function handle_raw_excel_upload($pdo, $kategori)
                 if (empty($entries)) {
                     throw new RuntimeException('Tidak ditemukan baris data komoditas pada Excel.');
                 }
+                $pdo = create_database_connection($databaseConfig);
                 $count = insert_raw_aggregated_entries($pdo, $jenis, $kategori, $periode, $entries, $mode);
                 $message = 'Berhasil merekap ' . $count . ' komoditas untuk ' . (format_label_periode_kode($periode) ?: $periode) . '.';
             } catch (Exception $exception) {
