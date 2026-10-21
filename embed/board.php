@@ -23,7 +23,7 @@ $fieldTujuan = match ($jenis) {
 };
 
 // 1. Ambil Setting
-$stmtSet = $pdo->prepare("SELECT * FROM ekspor_settings WHERE jenis_kegiatan = ? AND kategori = ? LIMIT 1");
+$stmtSet = $pdo->prepare("SELECT * FROM ekspor_settings WHERE jenis_kegiatan = ? AND kategori = ? ORDER BY updated_at DESC, id DESC LIMIT 1");
 $stmtSet->execute([$jenis, $kategori]);
 $setting = $stmtSet->fetch() ?: [
     'top_n' => 5,
@@ -38,7 +38,37 @@ $topN = (int)($setting['top_n'] ?? 5);
 $urutan = (($setting['urutkan_berdasarkan'] ?? '') === 'frekuensi') ? 'frekuensi' : 'nilai_ekspor';
 $periodeStmt = $pdo->prepare("SELECT DISTINCT periode FROM ekspor_komoditas WHERE jenis_kegiatan = ? AND kategori = ? AND is_published = 1 AND periode REGEXP '^[0-9]{4}-[0-9]{2}$' ORDER BY periode ASC");
 $periodeStmt->execute([$jenis, $kategori]);
-$periodeOptions = $periodeStmt->fetchAll(PDO::FETCH_COLUMN);
+$publishedPeriods = $periodeStmt->fetchAll(PDO::FETCH_COLUMN);
+$periodeOptionSet = array_fill_keys($publishedPeriods, true);
+
+$tanggalAwal = (string)($setting['tanggal_awal'] ?? '');
+$tanggalAkhir = (string)($setting['tanggal_akhir'] ?? '');
+if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $tanggalAwal) && !empty($setting['tahun_awal'])) {
+    $tanggalAwal = (int)$setting['tahun_awal'] . '-01-01';
+}
+if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $tanggalAkhir) && !empty($setting['tahun_akhir'])) {
+    $tanggalAkhir = (int)$setting['tahun_akhir'] . '-12-31';
+}
+$bulanAwal = preg_match('/^\d{4}-\d{2}-\d{2}$/', $tanggalAwal) ? substr($tanggalAwal, 0, 7) : '';
+$bulanAkhir = preg_match('/^\d{4}-\d{2}-\d{2}$/', $tanggalAkhir) ? substr($tanggalAkhir, 0, 7) : '';
+if (
+    preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $bulanAwal)
+    && preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $bulanAkhir)
+    && checkdate((int)substr($bulanAwal, 5, 2), 1, (int)substr($bulanAwal, 0, 4))
+    && checkdate((int)substr($bulanAkhir, 5, 2), 1, (int)substr($bulanAkhir, 0, 4))
+    && $bulanAwal <= $bulanAkhir
+) {
+    $bulanBerjalan = new DateTimeImmutable($bulanAwal . '-01');
+    $bulanTerakhir = new DateTimeImmutable($bulanAkhir . '-01');
+    $batasBulan = 0;
+    while ($bulanBerjalan <= $bulanTerakhir && $batasBulan < 2400) {
+        $periodeOptionSet[$bulanBerjalan->format('Y-m')] = true;
+        $bulanBerjalan = $bulanBerjalan->modify('+1 month');
+        $batasBulan++;
+    }
+}
+$periodeOptions = array_keys($periodeOptionSet);
+sort($periodeOptions, SORT_STRING);
 $periodeA = trim($_GET['periode_a'] ?? ($periodeOptions[0] ?? ''));
 $periodeB = trim($_GET['periode_b'] ?? (count($periodeOptions) > 1 ? end($periodeOptions) : ($periodeOptions[0] ?? '')));
 if (!in_array($periodeA, $periodeOptions, true)) $periodeA = $periodeOptions[0] ?? '';
