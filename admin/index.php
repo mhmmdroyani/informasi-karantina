@@ -177,10 +177,6 @@ $labelKegiatanAktif = get_label_kegiatan($activeJenis);
                             <span style="color: var(--ink-muted);">Total Nilai Published</span>
                             <span style="font-weight: 600;"><?= format_rupiah_singkat($stats['hewan']['total_nilai']) ?></span>
                         </div>
-                        <div style="display: flex; justify-content: space-between; font-size: 12px; padding: 4px 0;">
-                            <span style="color: var(--ink-muted);">Setting Publik</span>
-                            <span style="font-weight: 500;">Top <?= $stats['hewan']['setting']['top_n'] ?: 'Semua' ?> (<?= htmlspecialchars($stats['hewan']['setting']['periode_label'] ?? '') ?>)</span>
-                        </div>
                     </div>
                 </div>
 
@@ -213,10 +209,6 @@ $labelKegiatanAktif = get_label_kegiatan($activeJenis);
                             <span style="color: var(--ink-muted);">Total Nilai Published</span>
                             <span style="font-weight: 600;"><?= format_rupiah_singkat($stats['ikan']['total_nilai']) ?></span>
                         </div>
-                        <div style="display: flex; justify-content: space-between; font-size: 12px; padding: 4px 0;">
-                            <span style="color: var(--ink-muted);">Setting Publik</span>
-                            <span style="font-weight: 500;">Top <?= $stats['ikan']['setting']['top_n'] ?: 'Semua' ?> (<?= htmlspecialchars($stats['ikan']['setting']['periode_label'] ?? '') ?>)</span>
-                        </div>
                     </div>
                 </div>
 
@@ -248,10 +240,6 @@ $labelKegiatanAktif = get_label_kegiatan($activeJenis);
                         <div style="display: flex; justify-content: space-between; font-size: 12px; padding: 4px 0; border-bottom: 1px solid var(--line);">
                             <span style="color: var(--ink-muted);">Total Nilai Published</span>
                             <span style="font-weight: 600;"><?= format_rupiah_singkat($stats['tumbuhan']['total_nilai']) ?></span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; font-size: 12px; padding: 4px 0;">
-                            <span style="color: var(--ink-muted);">Setting Publik</span>
-                            <span style="font-weight: 500;">Top <?= $stats['tumbuhan']['setting']['top_n'] ?: 'Semua' ?> (<?= htmlspecialchars($stats['tumbuhan']['setting']['periode_label'] ?? '') ?>)</span>
                         </div>
                     </div>
                 </div>
