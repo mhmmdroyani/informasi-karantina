@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/volume_units.php';
 
 function normalize_raw_excel_header($value)
 {
@@ -89,6 +90,9 @@ function aggregate_raw_excel_rows($rows)
         $volume = clean_number($row[$columns['volume']] ?? 0);
         $nilai = clean_number($row[$columns['nilai']] ?? 0);
         $unit = trim((string)($row[$columns['satuan']] ?? '')) ?: 'Tidak diketahui';
+        $normalizedVolume = normalize_compatible_volume_unit($volume, $unit);
+        $volume = $normalizedVolume['volume'];
+        $unit = $normalizedVolume['unit'];
         $klasifikasi = trim((string)($row[$columns['klasifikasi']] ?? ''));
         $daerahAsal = trim((string)($row[$columns['daerah_asal']] ?? ''));
         $daerahTujuan = trim((string)($row[$columns['daerah_tujuan']] ?? ''));
@@ -183,14 +187,15 @@ function merge_raw_excel_entries($existingEntries, $newEntries)
 {
     $merged = [];
     foreach (array_merge($existingEntries, $newEntries) as $entry) {
-        $unit = trim((string)$entry['satuan']) ?: 'Tidak diketahui';
+        $normalizedVolume = normalize_compatible_volume_unit($entry['volume'], $entry['satuan']);
+        $unit = $normalizedVolume['unit'];
         $key = raw_excel_group_key($entry['nama_komoditas'], $unit);
         if (!isset($merged[$key])) {
             $merged[$key] = [
                 'klasifikasi' => (string)($entry['klasifikasi'] ?? ''),
                 'nama_komoditas' => (string)$entry['nama_komoditas'],
                 'frekuensi' => (int)$entry['frekuensi'],
-                'volume' => (float)$entry['volume'],
+                'volume' => $normalizedVolume['volume'],
                 'satuan' => $unit,
                 'nilai_ekspor' => (float)$entry['nilai_ekspor'],
                 'daerah_asal' => is_array($entry['daerah_asal']) ? $entry['daerah_asal'] : preg_split('/\s*(?:,|;|\||\n)\s*/', (string)$entry['daerah_asal']),
@@ -201,7 +206,7 @@ function merge_raw_excel_entries($existingEntries, $newEntries)
         }
 
         $merged[$key]['frekuensi'] += (int)$entry['frekuensi'];
-        $merged[$key]['volume'] += (float)$entry['volume'];
+        $merged[$key]['volume'] += $normalizedVolume['volume'];
         $merged[$key]['nilai_ekspor'] += (float)$entry['nilai_ekspor'];
         foreach (['daerah_asal', 'daerah_tujuan', 'negara_tujuan'] as $field) {
             $values = is_array($entry[$field]) ? $entry[$field] : preg_split('/\s*(?:,|;|\||\n)\s*/', (string)$entry[$field]);

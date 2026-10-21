@@ -1,6 +1,7 @@
 <?php
 // embed/board.php - Master Template Board Infografis Karantina Kalsel (Format PPT Canva)
 require_once __DIR__ . '/../config/koneksi.php';
+require_once __DIR__ . '/../includes/volume_units.php';
 
 $assetPath = $assetPath ?? '';
 $showControls = $show_controls ?? (isset($_GET['nav']) && $_GET['nav'] == 1);
@@ -107,7 +108,7 @@ $comparisonRangeLabel = $periodeA === $periodeB
 $comparison = null;
 $comparisonMonthly = [];
 if ($compareMode && $periodeA !== '' && $periodeB !== '') {
-    $compareStmt = $pdo->prepare("SELECT periode, nilai_ekspor, volume, frekuensi, {$fieldTujuan} AS lokasi_tujuan FROM ekspor_komoditas WHERE jenis_kegiatan = ? AND kategori = ? AND is_published = 1 AND periode REGEXP '^[0-9]{4}-[0-9]{2}$' AND periode >= ? AND periode <= ?");
+    $compareStmt = $pdo->prepare("SELECT periode, nilai_ekspor, volume, satuan, frekuensi, {$fieldTujuan} AS lokasi_tujuan FROM ekspor_komoditas WHERE jenis_kegiatan = ? AND kategori = ? AND is_published = 1 AND periode REGEXP '^[0-9]{4}-[0-9]{2}$' AND periode >= ? AND periode <= ?");
     $compareStmt->execute([$jenis, $kategori, $rentangPeriodeAwal, $rentangPeriodeAkhir]);
     $comparisonRows = $compareStmt->fetchAll();
     $countries = [];
@@ -118,16 +119,20 @@ if ($compareMode && $periodeA !== '' && $periodeB !== '') {
             if ($country !== '') $countries[strtolower($country)] = $country;
         }
     }
+    $comparisonVolume = 0.0;
+    foreach ($comparisonRows as $row) {
+        $comparisonVolume += normalize_compatible_volume_unit($row['volume'], $row['satuan'] ?? '')['volume'];
+    }
     $comparison = [
         'nilai' => (float)array_sum(array_column($comparisonRows, 'nilai_ekspor')),
-        'volume' => (float)array_sum(array_column($comparisonRows, 'volume')),
+        'volume' => $comparisonVolume,
         'frekuensi' => (int)array_sum(array_column($comparisonRows, 'frekuensi')),
         'negara' => count($countries)
     ];
 
     $comparisonYears = range((int)substr($rentangPeriodeAwal, 0, 4), (int)substr($rentangPeriodeAkhir, 0, 4));
     $comparisonYears = array_map('strval', $comparisonYears);
-    $trendStmt = $pdo->prepare("SELECT periode, nilai_ekspor, volume, frekuensi, {$fieldTujuan} AS lokasi_tujuan
+    $trendStmt = $pdo->prepare("SELECT periode, nilai_ekspor, volume, satuan, frekuensi, {$fieldTujuan} AS lokasi_tujuan
         FROM ekspor_komoditas
         WHERE jenis_kegiatan = ? AND kategori = ? AND is_published = 1
             AND periode REGEXP '^[0-9]{4}-[0-9]{2}$'
@@ -150,7 +155,7 @@ if ($compareMode && $periodeA !== '' && $periodeB !== '') {
             continue;
         }
         $comparisonMonthly[$year]['nilai'][$month] += (float)$row['nilai_ekspor'];
-        $comparisonMonthly[$year]['volume'][$month] += (float)$row['volume'];
+        $comparisonMonthly[$year]['volume'][$month] += normalize_compatible_volume_unit($row['volume'], $row['satuan'] ?? '')['volume'];
         $comparisonMonthly[$year]['frekuensi'][$month] += (int)$row['frekuensi'];
         $parts = preg_split('/\s*(?:,|;|\/|\|)\s*/', (string)($row['lokasi_tujuan'] ?? ''));
         foreach ($parts as $country) {
@@ -217,12 +222,13 @@ if (!$comparisonPage) {
     $groupedData = [];
     foreach ($allMonthlyData as $row) {
         $commodityKey = strtolower(preg_replace('/\s+/', ' ', trim((string)$row['nama_komoditas'])));
-        $unit = trim((string)($row['satuan'] ?? '')) ?: 'Kilogram';
+        $normalizedVolume = normalize_compatible_volume_unit($row['volume'], $row['satuan'] ?? '');
+        $unit = $normalizedVolume['unit'];
         $groupKey = $commodityKey . "\0" . strtolower(preg_replace('/\s+/', ' ', $unit));
         if (!isset($groupedData[$groupKey])) {
             $row['satuan'] = $unit;
             $row['frekuensi'] = (int)$row['frekuensi'];
-            $row['volume'] = (float)$row['volume'];
+            $row['volume'] = $normalizedVolume['volume'];
             $row['nilai_ekspor'] = (float)$row['nilai_ekspor'];
             foreach (['daerah_asal', 'daerah_tujuan', 'negara_tujuan'] as $field) {
                 $row[$field] = array_filter(array_map('trim', preg_split('/\s*(?:,|;|\/|\|)\s*/', (string)($row[$field] ?? ''))));
@@ -232,7 +238,7 @@ if (!$comparisonPage) {
         }
 
         $groupedData[$groupKey]['frekuensi'] += (int)$row['frekuensi'];
-        $groupedData[$groupKey]['volume'] += (float)$row['volume'];
+        $groupedData[$groupKey]['volume'] += $normalizedVolume['volume'];
         $groupedData[$groupKey]['nilai_ekspor'] += (float)$row['nilai_ekspor'];
         foreach (['daerah_asal', 'daerah_tujuan', 'negara_tujuan'] as $field) {
             $values = array_filter(array_map('trim', preg_split('/\s*(?:,|;|\/|\|)\s*/', (string)($row[$field] ?? ''))));
