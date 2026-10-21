@@ -715,13 +715,13 @@ body {
 .board-comparison-card {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  min-height: 150px;
-  padding: 17px 16px;
-  background: var(--surface);
-  border: 2px dashed #64748b;
-  border-radius: 10px;
-  box-shadow: var(--shadow-card);
+  gap: 8px;
+  min-height: 124px;
+  padding: 16px;
+  background: linear-gradient(145deg, #fff 0%, #f8fbfc 100%);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.05);
   border-top: 3px solid var(--brand);
 }
 
@@ -745,35 +745,30 @@ body {
 
 .comparison-values {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 7px;
+  grid-template-columns: minmax(0, 1fr);
+  margin-top: 2px;
 }
 
 .comparison-values > div {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   min-width: 0;
-  padding-left: 9px;
-  border-left: 3px solid #dbe4ed;
-}
-
-.comparison-values > div:last-child {
-  border-left-color: var(--brand);
 }
 
 .comparison-values small {
   color: var(--ink-soft);
-  font-size: 12px;
-  line-height: 1.35;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: nowrap;
 }
 
 .comparison-values strong {
   color: var(--ink);
-  font-size: 19px;
+  font-size: clamp(20px, 2vw, 24px);
   line-height: 1.2;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .board-comparison-card em {
@@ -1021,7 +1016,7 @@ body {
   }
 
   .comparison-values strong {
-    font-size: 14px;
+    font-size: 20px;
     white-space: normal;
     overflow-wrap: anywhere;
   }
