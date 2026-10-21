@@ -63,7 +63,7 @@ $requestedSort = $_GET['urutkan'] ?? '';
 if (is_string($requestedSort) && in_array($requestedSort, ['nilai_ekspor', 'frekuensi'], true)) {
     $urutan = $requestedSort;
 }
-$compareMode = $periodeA !== '' && $periodeB !== '';
+$compareMode = $comparisonPage && $periodeA !== '' && $periodeB !== '';
 $comparisonLabelA = format_label_periode_kode($periodeA) ?: $periodeA;
 $comparisonLabelB = format_label_periode_kode($periodeB) ?: $periodeB;
 
@@ -150,9 +150,9 @@ if (isset($_GET['bln_awal']) || isset($_GET['thn_awal']) || isset($_GET['tahun_a
     $labelTahunPublik = format_label_tahun($tglAwal, $tglAkhir, '');
 }
 
-$labelTahunPublik = $compareMode
-    ? $comparisonLabelA . ' vs ' . $comparisonLabelB
-    : 'BELUM ADA PERIODE DATA';
+$labelTahunPublik = $comparisonPage
+    ? ($compareMode ? $comparisonLabelA . ' vs ' . $comparisonLabelB : 'BELUM ADA PERIODE DATA')
+    : ($comparisonLabelB !== '' ? $comparisonLabelB : 'BELUM ADA PERIODE DATA');
 
 // 2. Query Data Published
 $queryParams = [$jenis, $kategori];
@@ -419,7 +419,7 @@ foreach ($periodeOptions as $periodOption) {
 
     <!-- Hero -->
     <section class="board-hero">
-        <h1 class="board-hero-title"><?= $compareMode ? 'Laporan Perbandingan' : 'Top ' . ($topN > 0 ? $topN : 'Semua') . ' Komoditas' ?> <?= $labelKategori ?> — <?= $labelKegiatan ?></h1>
+        <h1 class="board-hero-title"><?= $comparisonPage ? 'Laporan Perbandingan' : 'Top ' . ($topN > 0 ? $topN : 'Semua') . ' Komoditas' ?> <?= $labelKategori ?> — <?= $labelKegiatan ?></h1>
         <p class="board-hero-desc">
             Ringkasan lalu lintas komoditas karantina yang dipublikasikan oleh Balai Karantina Kalimantan Selatan.
         </p>
@@ -504,7 +504,7 @@ foreach ($periodeOptions as $periodOption) {
         <?php endif; ?>
     </section>
 
-    <?php if ($compareMode && $comparison !== null): ?>
+    <?php if ($comparisonPage && $compareMode && $comparison !== null): ?>
         <?php
         $comparisonMetrics = [
             ['label' => 'Nilai ' . $labelKegiatan, 'key' => 'nilai', 'format' => fn($value) => format_rupiah_singkat($value)],
