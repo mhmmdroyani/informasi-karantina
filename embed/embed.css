@@ -1174,7 +1174,8 @@ body {
   .board-login-btn,
   .board-compare-btn,
   .board-hero-controls,
-  .board-download-btn {
+  .board-download-btn,
+  .footer-komoditas {
     display: none !important;
   }
 
