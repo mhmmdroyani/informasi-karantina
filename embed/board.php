@@ -153,7 +153,7 @@ if (isset($_GET['bln_awal']) || isset($_GET['thn_awal']) || isset($_GET['tahun_a
 $labelTahunPublik = $comparisonPage
     ? ($compareMode ? $comparisonLabelA . ' vs ' . $comparisonLabelB : 'BELUM ADA PERIODE DATA')
     : ($periodeA !== '' && $periodeB !== ''
-        ? ($periodeA === $periodeB ? $comparisonLabelA : $comparisonLabelA . ' + ' . $comparisonLabelB)
+        ? ($periodeA === $periodeB ? $comparisonLabelA : $comparisonLabelA . ' - ' . $comparisonLabelB)
         : 'BELUM ADA PERIODE DATA');
 
 // 2. Query Data Published
