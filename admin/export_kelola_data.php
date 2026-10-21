@@ -6,6 +6,7 @@ require_once __DIR__ . '/../config/auth.php';
 require_admin();
 
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
@@ -69,7 +70,8 @@ $sheet->setCellValue('A2', 'Balai Karantina Hewan, Ikan, dan Tumbuhan Kalimantan
 $sheet->setCellValue('A3', "Periode: {$labelPeriode}");
 
 foreach ($columns as $index => $column) {
-    $sheet->setCellValue([$index + 1, 5], $column);
+    $coordinate = Coordinate::stringFromColumnIndex($index + 1) . '5';
+    $sheet->setCellValue($coordinate, $column);
 }
 
 foreach ($rows as $index => $row) {
@@ -93,11 +95,11 @@ foreach ($rows as $index => $row) {
     ];
 
     foreach ($values as $columnIndex => $value) {
-        $cell = $sheet->getCell([$columnIndex + 1, $excelRow]);
+        $coordinate = Coordinate::stringFromColumnIndex($columnIndex + 1) . $excelRow;
         if (is_int($value) || is_float($value)) {
-            $cell->setValue($value);
+            $sheet->setCellValue($coordinate, $value);
         } else {
-            $cell->setValueExplicit($value, DataType::TYPE_STRING);
+            $sheet->setCellValueExplicit($coordinate, $value, DataType::TYPE_STRING);
         }
     }
 }
