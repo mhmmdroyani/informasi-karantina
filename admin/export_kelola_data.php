@@ -1,8 +1,5 @@
 <?php
-require_once __DIR__ . '/../vendor/autoload.php';
-require_once __DIR__ . '/../config/koneksi.php';
 require_once __DIR__ . '/../config/auth.php';
-
 require_admin();
 
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
@@ -12,6 +9,15 @@ use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+
+// Keep failures useful to the admin without exposing database or server details.
+$exportStage = 'memuat library Excel';
+
+try {
+require_once __DIR__ . '/../vendor/autoload.php';
+
+$exportStage = 'menghubungkan database';
+require_once __DIR__ . '/../config/koneksi.php';
 
 $jenis = $_GET['jenis'] ?? 'domestik_masuk';
 if (!in_array($jenis, ['ekspor', 'impor', 'domestik_keluar', 'domestik_masuk'], true)) {
@@ -32,6 +38,7 @@ if (
     exit('Pilih periode yang valid sebelum mengunduh data.');
 }
 
+$exportStage = 'mengambil data dari database';
 $stmt = $pdo->prepare(
     'SELECT *
      FROM ekspor_komoditas
@@ -59,6 +66,7 @@ $columns = [
 ];
 $lastColumn = 'K';
 
+$exportStage = 'menyusun file Excel';
 $spreadsheet = new Spreadsheet();
 $sheet = $spreadsheet->getActiveSheet();
 $sheet->setTitle('Rekap Data');
@@ -160,6 +168,26 @@ header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetm
 header('Content-Disposition: attachment;filename="' . $filename . '"');
 header('Cache-Control: max-age=0');
 
+$exportStage = 'mengirim file Excel';
 $writer = new Xlsx($spreadsheet);
 $writer->save('php://output');
 exit;
+} catch (Throwable $error) {
+    $errorId = bin2hex(random_bytes(4));
+    error_log(sprintf(
+        '[Excel export %s] Stage: %s; %s: %s',
+        $errorId,
+        $exportStage,
+        get_class($error),
+        $error->getMessage()
+    ));
+
+    if (!headers_sent()) {
+        http_response_code(500);
+        header('Content-Type: text/plain; charset=UTF-8');
+    }
+
+    echo "Unduhan Excel gagal pada tahap: {$exportStage}.\n";
+    echo "Kode diagnostik: {$errorId}.";
+    exit;
+}
