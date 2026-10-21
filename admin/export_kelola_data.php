@@ -66,10 +66,11 @@ $columns = [
 ];
 $lastColumn = 'K';
 
-$exportStage = 'menyusun file Excel';
+$exportStage = 'membuat worksheet Excel';
 $spreadsheet = new Spreadsheet();
 $sheet = $spreadsheet->getActiveSheet();
 $sheet->setTitle('Rekap Data');
+$exportStage = 'menulis judul dan header Excel';
 $sheet->mergeCells("A1:{$lastColumn}1");
 $sheet->mergeCells("A2:{$lastColumn}2");
 $sheet->mergeCells("A3:{$lastColumn}3");
@@ -83,6 +84,7 @@ foreach ($columns as $index => $column) {
 }
 
 foreach ($rows as $index => $row) {
+    $exportStage = 'memasukkan baris data ke Excel (' . ($index + 1) . ')';
     $excelRow = $index + 6;
     $commodity = (string)($row['nama_komoditas'] ?? '');
     if (!empty($row['nama_komoditas_lokal'])) {
@@ -113,6 +115,7 @@ foreach ($rows as $index => $row) {
 }
 
 $lastRow = max(5, count($rows) + 5);
+$exportStage = 'memformat tabel Excel';
 $sheet->getStyle("A1:{$lastColumn}3")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
 $sheet->getStyle('A2')->getFont()->setBold(true)->setSize(12);
@@ -147,6 +150,7 @@ foreach (['A' => 7, 'B' => 20, 'C' => 32, 'D' => 14, 'E' => 16, 'F' => 16, 'G' =
     $sheet->getColumnDimension($column)->setWidth($width);
 }
 
+$exportStage = 'menyiapkan pengaturan cetak Excel';
 $sheet->setAutoFilter("A5:{$lastColumn}{$lastRow}");
 $sheet->freezePane('A6');
 $sheet->getPageSetup()
@@ -168,7 +172,7 @@ header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetm
 header('Content-Disposition: attachment;filename="' . $filename . '"');
 header('Cache-Control: max-age=0');
 
-$exportStage = 'mengirim file Excel';
+$exportStage = 'membuat file XLSX';
 $writer = new Xlsx($spreadsheet);
 $writer->save('php://output');
 exit;
