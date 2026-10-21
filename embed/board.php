@@ -73,6 +73,8 @@ $periodeA = trim($_GET['periode_a'] ?? ($periodeOptions[0] ?? ''));
 $periodeB = trim($_GET['periode_b'] ?? (count($periodeOptions) > 1 ? end($periodeOptions) : ($periodeOptions[0] ?? '')));
 if (!in_array($periodeA, $periodeOptions, true)) $periodeA = $periodeOptions[0] ?? '';
 if (!in_array($periodeB, $periodeOptions, true)) $periodeB = $periodeOptions[count($periodeOptions) - 1] ?? '';
+$rentangPeriodeAwal = min($periodeA, $periodeB);
+$rentangPeriodeAkhir = max($periodeA, $periodeB);
 $periodeFilter = $periodeB;
 
 if ($periodeB !== '') {
@@ -183,7 +185,11 @@ if (isset($_GET['bln_awal']) || isset($_GET['thn_awal']) || isset($_GET['tahun_a
 $labelTahunPublik = $comparisonPage
     ? ($compareMode ? $comparisonLabelA . ' vs ' . $comparisonLabelB : 'BELUM ADA PERIODE DATA')
     : ($periodeA !== '' && $periodeB !== ''
-        ? ($periodeA === $periodeB ? $comparisonLabelA : $comparisonLabelA . ' - ' . $comparisonLabelB)
+        ? ($rentangPeriodeAwal === $rentangPeriodeAkhir
+            ? (format_label_periode_kode($rentangPeriodeAwal) ?: $rentangPeriodeAwal)
+            : (format_label_periode_kode($rentangPeriodeAwal) ?: $rentangPeriodeAwal)
+                . ' - ' .
+                (format_label_periode_kode($rentangPeriodeAkhir) ?: $rentangPeriodeAkhir))
         : 'BELUM ADA PERIODE DATA');
 
 // 2. Query Data Published
@@ -193,9 +199,9 @@ if ($comparisonPage && $periodeFilter !== '') {
     $sql .= " AND periode = ?";
     $queryParams[] = $periodeFilter;
 } elseif (!$comparisonPage && $periodeA !== '' && $periodeB !== '') {
-    $selectedPeriods = array_values(array_unique([$periodeA, $periodeB]));
-    $sql .= " AND periode IN (" . implode(', ', array_fill(0, count($selectedPeriods), '?')) . ")";
-    array_push($queryParams, ...$selectedPeriods);
+    $sql .= " AND periode REGEXP '^[0-9]{4}-[0-9]{2}$' AND periode >= ? AND periode <= ?";
+    $queryParams[] = $rentangPeriodeAwal;
+    $queryParams[] = $rentangPeriodeAkhir;
 } else {
     $sql .= " AND 1 = 0";
 }
