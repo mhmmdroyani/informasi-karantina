@@ -122,7 +122,7 @@ foreach ($rows as $index => $row) {
             $wrappedLines = max($wrappedLines, $cellLines);
         }
     }
-    $sheet->getRowDimension($excelRow)->setRowHeight(max(22, $wrappedLines * 15 + 4));
+    $sheet->getRowDimension($excelRow)->setRowHeight(max(30, $wrappedLines * 15 + 18));
 }
 
 $lastRow = max(5, count($rows) + 5);
