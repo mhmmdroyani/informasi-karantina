@@ -25,6 +25,20 @@ function raw_excel_group_key($commodity, $unit)
     return $normalizedCommodity . "\0" . $normalizedUnit;
 }
 
+function raw_excel_required_columns()
+{
+    return [
+        'klasifikasi' => 'klasifikasi',
+        'komoditas' => 'komoditas',
+        'volp1' => 'volume',
+        'satuanlain' => 'satuan',
+        'hargabarangrp' => 'nilai',
+        'daerahasal' => 'daerah_asal',
+        'daerahtujuan' => 'daerah_tujuan',
+        'negaratujuan' => 'negara_tujuan',
+    ];
+}
+
 function ensure_monthly_raw_columns($pdo)
 {
     foreach (['klasifikasi', 'daerah_asal', 'daerah_tujuan'] as $column) {
@@ -42,16 +56,7 @@ function ensure_monthly_raw_columns($pdo)
 
 function aggregate_raw_excel_rows($rows)
 {
-    $required = [
-        'klasifikasi' => 'klasifikasi',
-        'komoditas' => 'komoditas',
-        'volp1' => 'volume',
-        'satuanlain' => 'satuan',
-        'hargabarangrp' => 'nilai',
-        'daerahasal' => 'daerah_asal',
-        'daerahtujuan' => 'daerah_tujuan',
-        'negaratujuan' => 'negara_tujuan',
-    ];
+    $required = raw_excel_required_columns();
 
     $headerRow = null;
     $columns = [];
@@ -127,6 +132,51 @@ function aggregate_raw_excel_rows($rows)
     }
 
     return $result;
+}
+
+function aggregate_raw_excel_sheet($sheet)
+{
+    $required = raw_excel_required_columns();
+    $headerRow = null;
+    $columns = [];
+    $rows = [];
+    $highestDataRow = $sheet->getHighestDataRow();
+
+    foreach ($sheet->getRowIterator(1, $highestDataRow) as $row) {
+        $rowIndex = $row->getRowIndex();
+
+        if ($headerRow === null) {
+            $headerValues = [];
+            $candidate = [];
+            $cellIterator = $row->getCellIterator();
+            $cellIterator->setIterateOnlyExistingCells(true);
+            foreach ($cellIterator as $cell) {
+                $columnIndex = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($cell->getColumn()) - 1;
+                $value = $cell->getCalculatedValue();
+                $headerValues[$columnIndex] = $value;
+                $key = normalize_raw_excel_header((string)$value);
+                if (isset($required[$key])) {
+                    $candidate[$required[$key]] = $columnIndex;
+                }
+            }
+
+            if (count($candidate) >= count($required)) {
+                $headerRow = $rowIndex;
+                $columns = $candidate;
+                $rows[] = $headerValues;
+            }
+            continue;
+        }
+
+        $rowValues = [];
+        foreach ($columns as $columnIndex) {
+            $coordinate = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($columnIndex + 1) . $rowIndex;
+            $rowValues[$columnIndex] = $sheet->getCell($coordinate)->getCalculatedValue();
+        }
+        $rows[] = $rowValues;
+    }
+
+    return aggregate_raw_excel_rows($rows);
 }
 
 function merge_raw_excel_entries($existingEntries, $newEntries)
@@ -248,22 +298,32 @@ function handle_raw_excel_upload($pdo, $kategori, array $databaseConfig)
             $error = 'Format file tidak didukung. Gunakan Excel .xlsx, .xls, atau .csv.';
         } else {
             try {
-                $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($_FILES['file_excel']['tmp_name']);
-                $sheet = $spreadsheet->getSheet(0);
-                foreach ($spreadsheet->getSheetNames() as $sheetName) {
+                $filePath = $_FILES['file_excel']['tmp_name'];
+                $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReaderForFile($filePath);
+                $sheetNames = $reader->listWorksheetNames($filePath);
+                $sheetNameToLoad = $sheetNames[0] ?? null;
+                foreach ($sheetNames as $sheetName) {
                     if (strcasecmp($sheetName, 'Ops') === 0) {
-                        $sheet = $spreadsheet->getSheetByName($sheetName);
+                        $sheetNameToLoad = $sheetName;
                         break;
                     }
                 }
-                $entries = aggregate_raw_excel_rows($sheet->toArray());
+                if ($sheetNameToLoad === null) {
+                    throw new RuntimeException('File Excel tidak memiliki sheet yang dapat dibaca.');
+                }
+                $reader->setReadDataOnly(true);
+                $reader->setReadEmptyCells(false);
+                $reader->setLoadSheetsOnly([$sheetNameToLoad]);
+                $spreadsheet = $reader->load($filePath);
+                $entries = aggregate_raw_excel_sheet($spreadsheet->getSheet(0));
                 if (empty($entries)) {
                     throw new RuntimeException('Tidak ditemukan baris data komoditas pada Excel.');
                 }
+                unset($spreadsheet, $reader);
                 $pdo = create_database_connection($databaseConfig);
                 $count = insert_raw_aggregated_entries($pdo, $jenis, $kategori, $periode, $entries, $mode);
                 $message = 'Berhasil merekap ' . $count . ' komoditas untuk ' . (format_label_periode_kode($periode) ?: $periode) . '.';
-            } catch (Exception $exception) {
+            } catch (Throwable $exception) {
                 error_log('SILAKOM raw spreadsheet import failed: ' . $exception->getMessage());
                 $error = $exception->getMessage();
             }
