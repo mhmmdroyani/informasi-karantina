@@ -32,8 +32,7 @@ if (
 }
 
 $stmt = $pdo->prepare(
-    'SELECT klasifikasi, nama_komoditas, nama_komoditas_lokal, frekuensi, volume, satuan,
-            nilai_ekspor, daerah_asal, daerah_tujuan, negara_tujuan, is_published
+    'SELECT *
      FROM ekspor_komoditas
      WHERE jenis_kegiatan = ? AND kategori = ? AND periode = ?
      ORDER BY is_published DESC, nilai_ekspor DESC, frekuensi DESC'
@@ -75,7 +74,7 @@ foreach ($columns as $index => $column) {
 
 foreach ($rows as $index => $row) {
     $excelRow = $index + 6;
-    $commodity = (string)$row['nama_komoditas'];
+    $commodity = (string)($row['nama_komoditas'] ?? '');
     if (!empty($row['nama_komoditas_lokal'])) {
         $commodity .= "\n" . $row['nama_komoditas_lokal'];
     }
@@ -83,14 +82,14 @@ foreach ($rows as $index => $row) {
         $index + 1,
         (string)($row['klasifikasi'] ?? '-'),
         $commodity,
-        (int)$row['frekuensi'],
-        (float)$row['volume'],
+        (int)($row['frekuensi'] ?? 0),
+        (float)($row['volume'] ?? 0),
         (string)($row['satuan'] ?? '-'),
-        (float)$row['nilai_ekspor'],
+        (float)($row['nilai_ekspor'] ?? 0),
         (string)($row['daerah_asal'] ?? '-'),
         (string)($row['daerah_tujuan'] ?? '-'),
         (string)($row['negara_tujuan'] ?? '-'),
-        (int)$row['is_published'] === 1 ? 'Published' : 'Draft',
+        (int)($row['is_published'] ?? 0) === 1 ? 'Published' : 'Draft',
     ];
 
     foreach ($values as $columnIndex => $value) {
