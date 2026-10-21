@@ -191,12 +191,12 @@ body {
   display: inline-block;
   background: var(--gold);
   color: #ffffff;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
   letter-spacing: 0.6px;
   text-transform: uppercase;
-  padding: 10px 24px;
-  border-radius: 10px;
+  padding: 8px 22px;
+  border-radius: 14px;
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.22);
 }
 
@@ -881,8 +881,8 @@ body {
     font-size: 22px;
   }
   .board-periode-badge {
-    font-size: 15px;
-    padding: 9px 22px;
+    font-size: 14px;
+    padding: 8px 20px;
   }
   .board-comparison-grid {
     grid-template-columns: 1fr;
@@ -968,8 +968,8 @@ body {
 
   .board-periode-badge {
     max-width: 100%;
-    padding: 8px 16px;
-    font-size: 14px;
+    padding: 7px 14px;
+    font-size: 13px;
     overflow-wrap: anywhere;
   }
 
@@ -1203,8 +1203,8 @@ body {
   }
 
   .board-periode-badge {
-    padding: 8px 20px;
-    font-size: 14px;
+    padding: 7px 18px;
+    font-size: 13px;
   }
 
   .board-hero,
