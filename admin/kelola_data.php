@@ -250,7 +250,7 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
                         <button type="button" onclick="toggleAllCheckboxes(false)" class="btn btn-secondary btn-sm">Hapus Semua Centang</button>
                     </div>
                     <div class="kelola-data-toolbar-right" style="display: flex; align-items: center; gap: 10px; margin-left: auto; flex-wrap: wrap;">
-                        <div style="display: flex; align-items: center; gap: 6px;">
+                        <div id="periodeFilterWrap" style="display: flex; align-items: center; gap: 6px;">
                             <label for="periodeFilter" style="font-weight: 600; color: var(--ink-soft);">Periode:</label>
                             <select id="periodeFilter" class="field-input" onchange="window.location.href = 'kelola_data.php?jenis=<?= urlencode($jenis) ?>&kategori=<?= urlencode($kategori) ?>&periode=' + encodeURIComponent(this.value)" style="width: 230px; padding: 7px 10px; font-size: 12px;">
                                 <option value="">Pilih periode</option>
@@ -383,8 +383,9 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
 
     const kelolaDataActions = document.getElementById('kelolaDataActions');
     const kelolaDataToolbar = document.querySelector('.kelola-data-toolbar-right');
-    if (kelolaDataActions && kelolaDataToolbar) {
-        kelolaDataToolbar.append(kelolaDataActions);
+    const periodeFilterWrap = document.getElementById('periodeFilterWrap');
+    if (kelolaDataActions && kelolaDataToolbar && periodeFilterWrap) {
+        kelolaDataToolbar.insertBefore(kelolaDataActions, periodeFilterWrap.nextSibling);
     }
 
     </script>
