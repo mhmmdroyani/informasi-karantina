@@ -313,11 +313,18 @@ body {
 }
 
 .kpi-volume-secondary {
+  display: grid;
+  gap: 3px;
   margin-top: 2px;
   font-size: 14px;
   font-weight: 600;
   color: var(--ink);
   white-space: normal;
+}
+
+.kpi-volume-secondary span {
+  display: block;
+  line-height: 1.35;
 }
 
 /* ==========================================================================

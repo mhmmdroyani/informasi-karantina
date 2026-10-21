@@ -739,7 +739,7 @@ foreach ($periodeOptions as $periodOption) {
                     </div>
                     <div class="kpi-volume-secondary">
                         <?php foreach ($secondaryVolumes as $unit => $volume): ?>
-                            <span>dan <?= format_angka($volume, fmod((float)$volume, 1) === 0.0 ? 0 : 2) ?> <?= htmlspecialchars($unit) ?></span>
+                            <span><?= format_angka($volume, fmod((float)$volume, 1) === 0.0 ? 0 : 2) ?> <?= htmlspecialchars($unit) ?></span>
                         <?php endforeach; ?>
                     </div>
                 </div>
