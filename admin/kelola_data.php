@@ -117,7 +117,6 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
             <div>
                 <span class="eyebrow"><span class="dot dot-brand"></span> <?= htmlspecialchars($labelKegiatan) ?> &bull; <?= ucfirst($kategori) ?></span>
                 <h1 class="page-title">Kelola Data & Publikasi Board</h1>
-                <p class="page-desc">Centang komoditas yang ditampilkan ke publik, atur Top-N limit, urutan peringkat, dan label periode.</p>
             </div>
             <div style="display: flex; flex-wrap: wrap; gap: 8px;">
                 <a href="../embed/board.php?jenis=<?= $jenis ?>&kategori=<?= $kategori ?><?= $periodeFilter !== '' ? '&periode=' . urlencode($periodeFilter) : '' ?>" target="_self" class="btn btn-outline-brand">
