@@ -152,14 +152,20 @@ if (isset($_GET['bln_awal']) || isset($_GET['thn_awal']) || isset($_GET['tahun_a
 
 $labelTahunPublik = $comparisonPage
     ? ($compareMode ? $comparisonLabelA . ' vs ' . $comparisonLabelB : 'BELUM ADA PERIODE DATA')
-    : ($comparisonLabelB !== '' ? $comparisonLabelB : 'BELUM ADA PERIODE DATA');
+    : ($periodeA !== '' && $periodeB !== ''
+        ? ($periodeA === $periodeB ? $comparisonLabelA : $comparisonLabelA . ' + ' . $comparisonLabelB)
+        : 'BELUM ADA PERIODE DATA');
 
 // 2. Query Data Published
 $queryParams = [$jenis, $kategori];
 $sql = "SELECT * FROM ekspor_komoditas WHERE jenis_kegiatan = ? AND kategori = ? AND is_published = 1";
-if ($periodeFilter !== '') {
+if ($comparisonPage && $periodeFilter !== '') {
     $sql .= " AND periode = ?";
     $queryParams[] = $periodeFilter;
+} elseif (!$comparisonPage && $periodeA !== '' && $periodeB !== '') {
+    $selectedPeriods = array_values(array_unique([$periodeA, $periodeB]));
+    $sql .= " AND periode IN (" . implode(', ', array_fill(0, count($selectedPeriods), '?')) . ")";
+    array_push($queryParams, ...$selectedPeriods);
 } else {
     $sql .= " AND 1 = 0";
 }
@@ -167,7 +173,54 @@ $kolomUrutanSekunder = $urutan === 'frekuensi' ? 'nilai_ekspor' : 'frekuensi';
 $sql .= " ORDER BY {$urutan} DESC, {$kolomUrutanSekunder} DESC, nama_komoditas ASC";
 $stmtData = $pdo->prepare($sql);
 $stmtData->execute($queryParams);
-$allData = $stmtData->fetchAll();
+$allMonthlyData = $stmtData->fetchAll();
+
+$allData = $allMonthlyData;
+if (!$comparisonPage) {
+    $groupedData = [];
+    foreach ($allMonthlyData as $row) {
+        $commodityKey = strtolower(preg_replace('/\s+/', ' ', trim((string)$row['nama_komoditas'])));
+        $unit = trim((string)($row['satuan'] ?? '')) ?: 'Kilogram';
+        $groupKey = $commodityKey . "\0" . strtolower(preg_replace('/\s+/', ' ', $unit));
+        if (!isset($groupedData[$groupKey])) {
+            $row['satuan'] = $unit;
+            $row['frekuensi'] = (int)$row['frekuensi'];
+            $row['volume'] = (float)$row['volume'];
+            $row['nilai_ekspor'] = (float)$row['nilai_ekspor'];
+            foreach (['daerah_asal', 'daerah_tujuan', 'negara_tujuan'] as $field) {
+                $row[$field] = array_filter(array_map('trim', preg_split('/\s*(?:,|;|\/|\|)\s*/', (string)($row[$field] ?? ''))));
+            }
+            $groupedData[$groupKey] = $row;
+            continue;
+        }
+
+        $groupedData[$groupKey]['frekuensi'] += (int)$row['frekuensi'];
+        $groupedData[$groupKey]['volume'] += (float)$row['volume'];
+        $groupedData[$groupKey]['nilai_ekspor'] += (float)$row['nilai_ekspor'];
+        foreach (['daerah_asal', 'daerah_tujuan', 'negara_tujuan'] as $field) {
+            $values = array_filter(array_map('trim', preg_split('/\s*(?:,|;|\/|\|)\s*/', (string)($row[$field] ?? ''))));
+            $groupedData[$groupKey][$field] = array_merge($groupedData[$groupKey][$field], $values);
+        }
+    }
+
+    foreach ($groupedData as &$row) {
+        foreach (['daerah_asal', 'daerah_tujuan', 'negara_tujuan'] as $field) {
+            $row[$field] = implode(', ', array_values(array_unique($row[$field])));
+        }
+    }
+    unset($row);
+
+    $allData = array_values($groupedData);
+    usort($allData, static function ($left, $right) use ($urutan) {
+        $primary = (float)$right[$urutan] <=> (float)$left[$urutan];
+        if ($primary !== 0) {
+            return $primary;
+        }
+        $secondaryColumn = $urutan === 'frekuensi' ? 'nilai_ekspor' : 'frekuensi';
+        $secondary = (float)$right[$secondaryColumn] <=> (float)$left[$secondaryColumn];
+        return $secondary !== 0 ? $secondary : strcasecmp($left['nama_komoditas'], $right['nama_komoditas']);
+    });
+}
 
 // Batasi tampilan Top N, tetapi tetap gunakan seluruh dataset yang terpilih untuk agregat KPI.
 $data = $allData;
@@ -244,7 +297,7 @@ $normalizeCountryName = function ($name) use ($countryAliases) {
 
 $uniqueDest = [];
 $destValues = [];
-foreach ($allData as $r) {
+foreach ($allMonthlyData as $r) {
     if (!empty($r[$fieldTujuan])) {
         $parts = preg_split('/\s*(?:,|;|\/|\|)\s*/', (string)$r[$fieldTujuan]);
         $validParts = array_values(array_filter($parts, fn($x) => trim((string)$x) !== ''));
@@ -421,7 +474,9 @@ foreach ($periodeOptions as $periodOption) {
     <section class="board-hero">
         <h1 class="board-hero-title"><?= $comparisonPage ? 'Laporan Perbandingan' : 'Top ' . ($topN > 0 ? $topN : 'Semua') . ' Komoditas' ?> <?= $labelKategori ?> — <?= $labelKegiatan ?></h1>
         <p class="board-hero-desc">
-            Ringkasan lalu lintas komoditas karantina yang dipublikasikan oleh Balai Karantina Kalimantan Selatan.
+            <?= $comparisonPage
+                ? 'Perbandingan data pada Periode A dan Periode B.'
+                : 'Ringkasan gabungan data dari Periode A dan Periode B yang dipilih.' ?>
         </p>
 
         <div class="board-periode-wrap">
