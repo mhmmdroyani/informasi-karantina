@@ -48,9 +48,6 @@ a {
 }
 
 .kelola-data-action-bar {
-  position: sticky;
-  top: 72px;
-  z-index: 40;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -70,6 +67,10 @@ a {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.kelola-data-actions .btn-primary {
+  order: -1;
 }
 
 /* ==========================================================================

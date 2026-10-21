@@ -227,10 +227,10 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
                         <span class="badge badge-brand">Publish: <strong><?= $totalPublished ?></strong></span>
                         <span class="badge badge-neutral">Draft: <strong><?= $totalDraft ?></strong></span>
                     </div>
-                    <div class="kelola-data-actions">
+                    <div class="kelola-data-actions" id="kelolaDataActions">
                         <button type="submit" formaction="hapus_data.php" formmethod="POST" name="action" value="batch_ids" class="btn btn-danger btn-sm" data-confirm="Yakin ingin menghapus semua data yang dicentang? Tindakan ini tidak bisa dibatalkan." data-confirm-tone="danger">
                             <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 01-1 1v3M4 7h16"></path></svg>
-                            <span>Hapus Terpilih</span>
+                            <span>Hapus</span>
                         </button>
                         <button type="submit" class="btn btn-primary btn-sm">
                             <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
@@ -249,7 +249,7 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
                         <button type="button" onclick="toggleAllCheckboxes(true)" class="btn btn-secondary btn-sm">Centang Semua</button>
                         <button type="button" onclick="toggleAllCheckboxes(false)" class="btn btn-secondary btn-sm">Hapus Semua Centang</button>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 10px; margin-left: auto;">
+                    <div class="kelola-data-toolbar-right" style="display: flex; align-items: center; gap: 10px; margin-left: auto; flex-wrap: wrap;">
                         <div style="display: flex; align-items: center; gap: 6px;">
                             <label for="periodeFilter" style="font-weight: 600; color: var(--ink-soft);">Periode:</label>
                             <select id="periodeFilter" class="field-input" onchange="window.location.href = 'kelola_data.php?jenis=<?= urlencode($jenis) ?>&kategori=<?= urlencode($kategori) ?>&periode=' + encodeURIComponent(this.value)" style="width: 230px; padding: 7px 10px; font-size: 12px;">
@@ -379,6 +379,12 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
         });
         const head = document.getElementById('checkAllHead');
         if (head) head.checked = state;
+    }
+
+    const kelolaDataActions = document.getElementById('kelolaDataActions');
+    const kelolaDataToolbar = document.querySelector('.kelola-data-toolbar-right');
+    if (kelolaDataActions && kelolaDataToolbar) {
+        kelolaDataToolbar.append(kelolaDataActions);
     }
 
     </script>
