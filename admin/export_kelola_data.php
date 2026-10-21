@@ -150,16 +150,20 @@ foreach (['A' => 7, 'B' => 20, 'C' => 32, 'D' => 14, 'E' => 16, 'F' => 16, 'G' =
     $sheet->getColumnDimension($column)->setWidth($width);
 }
 
-$exportStage = 'menyiapkan pengaturan cetak Excel';
-$sheet->setAutoFilter("A5:{$lastColumn}{$lastRow}");
-$sheet->freezePane('A6');
+$exportStage = 'mengatur orientasi halaman Excel';
 $sheet->getPageSetup()
     ->setOrientation(\PhpOffice\PhpSpreadsheet\Worksheet\PageSetup::ORIENTATION_LANDSCAPE)
     ->setPaperSize(\PhpOffice\PhpSpreadsheet\Worksheet\PageSetup::PAPERSIZE_A4)
     ->setFitToWidth(1)
     ->setFitToHeight(0);
-$sheet->getPageSetup()->setRowsToRepeatAtTopByStartAndEnd(1, 5);
-$sheet->getSheetView()->setShowGridLines(false);
+$exportStage = 'mengatur area cetak Excel';
+$sheet->getPageSetup()->setPrintArea("A1:{$lastColumn}{$lastRow}");
+$exportStage = 'mengatur margin cetak Excel';
+$sheet->getPageMargins()
+    ->setTop(0.5)
+    ->setRight(0.5)
+    ->setBottom(0.5)
+    ->setLeft(0.5);
 
 $filename = sprintf(
     'Rekap_%s_%s_%s.xlsx',
