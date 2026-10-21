@@ -228,7 +228,6 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <button type="button" onclick="toggleAllCheckboxes(true)" class="btn btn-secondary btn-sm">Centang Semua</button>
                         <button type="button" onclick="toggleAllCheckboxes(false)" class="btn btn-secondary btn-sm">Hapus Semua Centang</button>
-                        <span style="color: var(--ink-muted);">Pilih data komoditas yang ingin dipublikasikan ke board.</span>
                     </div>
                     <div style="display: flex; align-items: center; gap: 10px; margin-left: auto;">
                         <div style="display: flex; align-items: center; gap: 6px;">
