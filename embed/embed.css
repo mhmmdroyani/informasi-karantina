@@ -111,6 +111,23 @@ body {
   gap: 10px;
 }
 
+.board-nav-link {
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 12px;
+  border-radius: 8px;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.board-nav-link:hover,
+.board-nav-link:focus-visible {
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--gold);
+}
+
 .board-compare-btn {
   color: var(--brand-dark);
   border: 1px solid var(--gold);
@@ -1102,6 +1119,22 @@ body {
   align-items: center;
   justify-content: center;
   padding-inline: 16px;
+}
+
+.board-detail-period {
+  margin: 20px 0 12px;
+}
+
+.board-detail-period h2 {
+  margin: 0;
+  color: var(--brand-dark);
+  font-size: 18px;
+}
+
+.board-detail-period p {
+  margin: 4px 0 0;
+  color: var(--ink-muted);
+  font-size: 12px;
 }
 
 @media (max-width: 700px) {

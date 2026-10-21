@@ -36,16 +36,18 @@ $setting = $stmtSet->fetch() ?: [
 
 $topN = (int)($setting['top_n'] ?? 5);
 $urutan = (($setting['urutkan_berdasarkan'] ?? '') === 'frekuensi') ? 'frekuensi' : 'nilai_ekspor';
-$periodeFilter = trim($_GET['periode'] ?? '');
-$periodeStmt = $pdo->prepare("SELECT DISTINCT periode FROM ekspor_komoditas WHERE jenis_kegiatan = ? AND kategori = ? AND is_published = 1 ORDER BY periode ASC");
+$periodeStmt = $pdo->prepare("SELECT DISTINCT periode FROM ekspor_komoditas WHERE jenis_kegiatan = ? AND kategori = ? AND is_published = 1 AND periode REGEXP '^[0-9]{4}-[0-9]{2}$' ORDER BY periode ASC");
 $periodeStmt->execute([$jenis, $kategori]);
 $periodeOptions = $periodeStmt->fetchAll(PDO::FETCH_COLUMN);
-if ($periodeFilter !== '' && !in_array($periodeFilter, $periodeOptions, true)) {
-    $periodeFilter = !empty($periodeOptions) ? end($periodeOptions) : '';
-}
-if ($periodeFilter !== '') {
+$periodeA = trim($_GET['periode_a'] ?? ($periodeOptions[0] ?? ''));
+$periodeB = trim($_GET['periode_b'] ?? (count($periodeOptions) > 1 ? end($periodeOptions) : ($periodeOptions[0] ?? '')));
+if (!in_array($periodeA, $periodeOptions, true)) $periodeA = $periodeOptions[0] ?? '';
+if (!in_array($periodeB, $periodeOptions, true)) $periodeB = $periodeOptions[count($periodeOptions) - 1] ?? '';
+$periodeFilter = $periodeB;
+
+if ($periodeB !== '') {
     $stmtPeriodSet = $pdo->prepare("SELECT * FROM ekspor_settings WHERE jenis_kegiatan = ? AND kategori = ? AND periode = ? LIMIT 1");
-    $stmtPeriodSet->execute([$jenis, $kategori, $periodeFilter]);
+    $stmtPeriodSet->execute([$jenis, $kategori, $periodeB]);
     $periodSetting = $stmtPeriodSet->fetch();
     if ($periodSetting) {
         $setting = array_merge($setting, $periodSetting);
@@ -61,11 +63,7 @@ $requestedSort = $_GET['urutkan'] ?? '';
 if (is_string($requestedSort) && in_array($requestedSort, ['nilai_ekspor', 'frekuensi'], true)) {
     $urutan = $requestedSort;
 }
-$compareMode = $comparisonPage || (isset($_GET['banding']) && $_GET['banding'] === '1');
-$periodeA = trim($_GET['periode_a'] ?? ($periodeOptions[0] ?? ''));
-$periodeB = trim($_GET['periode_b'] ?? (count($periodeOptions) > 1 ? end($periodeOptions) : ($periodeOptions[0] ?? '')));
-if (!in_array($periodeA, $periodeOptions, true)) $periodeA = $periodeOptions[0] ?? '';
-if (!in_array($periodeB, $periodeOptions, true)) $periodeB = $periodeOptions[count($periodeOptions) - 1] ?? '';
+$compareMode = $periodeA !== '' && $periodeB !== '';
 $comparisonLabelA = format_label_periode_kode($periodeA) ?: $periodeA;
 $comparisonLabelB = format_label_periode_kode($periodeB) ?: $periodeB;
 
@@ -152,16 +150,9 @@ if (isset($_GET['bln_awal']) || isset($_GET['thn_awal']) || isset($_GET['tahun_a
     $labelTahunPublik = format_label_tahun($tglAwal, $tglAkhir, '');
 }
 
-if ($periodeFilter !== '') {
-    $labelPeriodeFilter = format_label_periode_kode($periodeFilter);
-    if ($labelPeriodeFilter !== '') {
-        $labelTahunPublik = $labelPeriodeFilter;
-    }
-} else {
-    $labelTahunPublik = $compareMode && $periodeA !== '' && $periodeB !== ''
-        ? $comparisonLabelA . ' vs ' . $comparisonLabelB
-        : 'PILIH PERIODE DATA';
-}
+$labelTahunPublik = $compareMode
+    ? $comparisonLabelA . ' vs ' . $comparisonLabelB
+    : 'BELUM ADA PERIODE DATA';
 
 // 2. Query Data Published
 $queryParams = [$jenis, $kategori];
@@ -367,33 +358,40 @@ function formatVolumeOtomatis($volume, $satuan) {
 <body>
 
 <?php
-$urlParamsExtra = '';
-if (isset($_GET['thn_awal'])) $urlParamsExtra .= '&thn_awal=' . urlencode($_GET['thn_awal']);
-if (isset($_GET['thn_akhir'])) $urlParamsExtra .= '&thn_akhir=' . urlencode($_GET['thn_akhir']);
-if (isset($_GET['bln_awal'])) $urlParamsExtra .= '&bln_awal=' . urlencode($_GET['bln_awal']);
-if (isset($_GET['bln_akhir'])) $urlParamsExtra .= '&bln_akhir=' . urlencode($_GET['bln_akhir']);
-if (isset($_GET['tgl_awal'])) $urlParamsExtra .= '&tgl_awal=' . urlencode($_GET['tgl_awal']);
-if (isset($_GET['tgl_akhir'])) $urlParamsExtra .= '&tgl_akhir=' . urlencode($_GET['tgl_akhir']);
-if (isset($_GET['mode'])) $urlParamsExtra .= '&mode=' . urlencode($_GET['mode']);
-if (isset($_GET['top_n'])) $urlParamsExtra .= '&top_n=' . urlencode($_GET['top_n']);
-if (isset($_GET['urutkan'])) $urlParamsExtra .= '&urutkan=' . urlencode($_GET['urutkan']);
-$urlParamsExtra .= $compareMode ? '&banding=1' : '';
-if ($compareMode) {
-    $urlParamsExtra .= '&periode_a=' . urlencode($periodeA) . '&periode_b=' . urlencode($periodeB);
-}
-$urlParamsBase = $urlParamsExtra;
-if ($periodeFilter !== '') $urlParamsExtra .= '&periode=' . urlencode($periodeFilter);
+$filterParams = [
+    'top_n' => $topN,
+    'urutkan' => $urutan,
+    'periode_a' => $periodeA,
+    'periode_b' => $periodeB
+];
+$comparisonPageUrl = $assetPath . 'perbandingan.php?' . http_build_query(array_merge(
+    ['jenis' => $jenis, 'kategori' => $kategori],
+    $filterParams
+));
+$urlParamsExtra = '&' . http_build_query($filterParams);
 $topFilterUrls = [];
 foreach ([1, 3, 5, 10, 0] as $topOption) {
-    $params = $_GET;
+    $params = $filterParams;
     $params['top_n'] = $topOption;
     $topFilterUrls[$topOption] = '?' . http_build_query($params);
 }
 $sortFilterUrls = [];
 foreach (['nilai_ekspor', 'frekuensi'] as $sortOption) {
-    $params = $_GET;
+    $params = $filterParams;
     $params['urutkan'] = $sortOption;
     $sortFilterUrls[$sortOption] = '?' . http_build_query($params);
+}
+$periodeAUrls = [];
+foreach ($periodeOptions as $periodOption) {
+    $params = $filterParams;
+    $params['periode_a'] = $periodOption;
+    $periodeAUrls[$periodOption] = '?' . http_build_query($params);
+}
+$periodeBUrls = [];
+foreach ($periodeOptions as $periodOption) {
+    $params = $filterParams;
+    $params['periode_b'] = $periodOption;
+    $periodeBUrls[$periodOption] = '?' . http_build_query($params);
 }
 ?>
 
@@ -410,6 +408,7 @@ foreach (['nilai_ekspor', 'frekuensi'] as $sortOption) {
 
         <?php if ($showControls): ?>
         <div class="board-topbar-actions">
+            <a href="<?= htmlspecialchars($comparisonPageUrl, ENT_QUOTES, 'UTF-8') ?>" class="board-nav-link">Bandingkan Periode</a>
             <a href="<?= $assetPath ?>../admin/index.php" class="board-login-btn">Login</a>
         </div>
         <?php endif; ?>
@@ -420,7 +419,7 @@ foreach (['nilai_ekspor', 'frekuensi'] as $sortOption) {
 
     <!-- Hero -->
     <section class="board-hero">
-        <h1 class="board-hero-title"><?= $compareMode ? 'Perbandingan Komoditas' : 'Top ' . ($topN > 0 ? $topN : 'Semua') . ' Komoditas' ?> <?= $labelKategori ?> — <?= $labelKegiatan ?></h1>
+        <h1 class="board-hero-title"><?= $compareMode ? 'Laporan Perbandingan' : 'Top ' . ($topN > 0 ? $topN : 'Semua') . ' Komoditas' ?> <?= $labelKategori ?> — <?= $labelKegiatan ?></h1>
         <p class="board-hero-desc">
             Ringkasan lalu lintas komoditas karantina yang dipublikasikan oleh Balai Karantina Kalimantan Selatan.
         </p>
@@ -455,6 +454,30 @@ foreach (['nilai_ekspor', 'frekuensi'] as $sortOption) {
             </label>
 
             <label class="hero-select-field">
+                <span class="hero-filter-label">Periode A</span>
+                <select name="periode_a" aria-label="Pilih bulan periode A" onchange="window.location.href = this.value" <?= empty($periodeOptions) ? 'disabled' : '' ?>>
+                    <?php foreach ($periodeOptions as $periodOption): ?>
+                        <option value="<?= htmlspecialchars($periodeAUrls[$periodOption], ENT_QUOTES, 'UTF-8') ?>" <?= $periodeA === $periodOption ? 'selected' : '' ?>><?= htmlspecialchars(format_label_periode_kode($periodOption) ?: $periodOption) ?></option>
+                    <?php endforeach; ?>
+                    <?php if (empty($periodeOptions)): ?>
+                        <option value="">Belum ada data bulanan</option>
+                    <?php endif; ?>
+                </select>
+            </label>
+
+            <label class="hero-select-field">
+                <span class="hero-filter-label">Periode B</span>
+                <select name="periode_b" aria-label="Pilih bulan periode B" onchange="window.location.href = this.value" <?= empty($periodeOptions) ? 'disabled' : '' ?>>
+                    <?php foreach ($periodeOptions as $periodOption): ?>
+                        <option value="<?= htmlspecialchars($periodeBUrls[$periodOption], ENT_QUOTES, 'UTF-8') ?>" <?= $periodeB === $periodOption ? 'selected' : '' ?>><?= htmlspecialchars(format_label_periode_kode($periodOption) ?: $periodOption) ?></option>
+                    <?php endforeach; ?>
+                    <?php if (empty($periodeOptions)): ?>
+                        <option value="">Belum ada data bulanan</option>
+                    <?php endif; ?>
+                </select>
+            </label>
+
+            <label class="hero-select-field">
                 <span class="hero-filter-label">Tampilkan</span>
                 <select name="top_n" aria-label="Jumlah komoditas" onchange="window.location.href = this.value">
                     <option value="<?= htmlspecialchars($topFilterUrls[1], ENT_QUOTES, 'UTF-8') ?>" <?= $topN === 1 ? 'selected' : '' ?>>Top 1</option>
@@ -473,21 +496,8 @@ foreach (['nilai_ekspor', 'frekuensi'] as $sortOption) {
                 </select>
             </label>
 
-            <?php if (!$comparisonPage): ?>
-            <label class="hero-select-field">
-                <span class="hero-filter-label">Periode Data</span>
-                <select name="periode" id="selectPeriode" onchange="window.location.href = this.value" aria-label="Pilih periode data">
-                    <option value="?jenis=<?= $jenis ?>&kategori=<?= $kategori ?><?= $urlParamsBase ?>" <?= $periodeFilter === '' ? 'selected' : '' ?> disabled><?= $compareMode ? htmlspecialchars($comparisonLabelA . ' vs ' . $comparisonLabelB) : 'Pilih periode data' ?></option>
-                    <?php foreach ($periodeOptions as $periodeOption): ?>
-                        <?php $periodeLabel = format_label_periode_kode($periodeOption) ?: $periodeOption; ?>
-                        <option value="?jenis=<?= $jenis ?>&kategori=<?= $kategori ?>&periode=<?= urlencode($periodeOption) ?><?= $urlParamsBase ?>" <?= $periodeFilter === $periodeOption ? 'selected' : '' ?>><?= htmlspecialchars($periodeLabel) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </label>
-
-            <a href="<?= $assetPath ?>perbandingan.php?jenis=<?= urlencode($jenis) ?>&kategori=<?= urlencode($kategori) ?>&top_n=<?= $topN ?>&urutkan=<?= urlencode($urutan) ?><?= $periodeFilter !== '' ? '&periode_a=' . urlencode($periodeFilter) : '' ?>" class="board-compare-btn">Bandingkan Periode</a>
-            <?php else: ?>
-            <a href="<?= $assetPath ?>../index.php?jenis=<?= urlencode($jenis) ?>&kategori=<?= urlencode($kategori) ?><?= $periodeFilter !== '' ? '&periode=' . urlencode($periodeFilter) : '' ?>" class="board-compare-btn">Kembali ke Board</a>
+            <?php if ($comparisonPage): ?>
+            <a href="<?= $assetPath ?>../index.php?<?= htmlspecialchars(http_build_query(array_merge(['jenis' => $jenis, 'kategori' => $kategori], $filterParams)), ENT_QUOTES, 'UTF-8') ?>" class="board-compare-btn">Kembali ke Board</a>
             <?php endif; ?>
 
         </div>
@@ -507,31 +517,9 @@ foreach (['nilai_ekspor', 'frekuensi'] as $sortOption) {
             <div class="board-comparison-header">
                 <div>
                     <h2>Perbandingan Periode</h2>
-                    <p>Bandingkan nilai pada bulan pilihan dan lihat tren bulanan pada tahun terkait.</p>
+                    <p>Bandingkan hasil laporan pada dua bulan yang dipilih.</p>
                 </div>
             </div>
-            <form method="GET" class="board-comparison-filters">
-                <input type="hidden" name="jenis" value="<?= htmlspecialchars($jenis) ?>">
-                <input type="hidden" name="kategori" value="<?= htmlspecialchars($kategori) ?>">
-                <input type="hidden" name="banding" value="1">
-                <input type="hidden" name="top_n" value="<?= $topN ?>">
-                <input type="hidden" name="urutkan" value="<?= htmlspecialchars($urutan) ?>">
-                <label>Periode A
-                    <select name="periode_a" onchange="this.form.submit()">
-                        <?php foreach ($periodeOptions as $period): ?>
-                            <option value="<?= htmlspecialchars($period) ?>" <?= $periodeA === $period ? 'selected' : '' ?>><?= htmlspecialchars(format_label_periode_kode($period) ?: $period) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </label>
-                <span class="board-comparison-vs">vs</span>
-                <label>Periode B
-                    <select name="periode_b" onchange="this.form.submit()">
-                        <?php foreach ($periodeOptions as $period): ?>
-                            <option value="<?= htmlspecialchars($period) ?>" <?= $periodeB === $period ? 'selected' : '' ?>><?= htmlspecialchars(format_label_periode_kode($period) ?: $period) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </label>
-            </form>
             <div class="board-comparison-grid">
                 <?php foreach ($comparisonMetrics as $metric):
                     $valueA = $comparison[$periodeA][$metric['key']];
@@ -605,12 +593,19 @@ foreach (['nilai_ekspor', 'frekuensi'] as $sortOption) {
         </section>
     <?php endif; ?>
 
-    <?php if (!$compareMode && empty($data)): ?>
+    <?php if (empty($data)): ?>
         <div class="board-empty-state">
             <h3>Data Belum Dipublikasikan</h3>
-            <p><?= $periodeFilter === '' ? 'Pilih periode data terlebih dahulu untuk menampilkan ringkasan.' : 'Belum ada data yang dipublikasikan untuk periode ini.' ?></p>
+            <p><?= $periodeB === '' ? 'Belum tersedia data bulanan yang dipublikasikan.' : 'Belum ada data yang dipublikasikan untuk ' . htmlspecialchars($comparisonLabelB) . '.' ?></p>
         </div>
-    <?php elseif (!$compareMode): ?>
+    <?php elseif (!$comparisonPage): ?>
+
+        <?php if ($compareMode): ?>
+            <div class="board-detail-period">
+                <h2>Rincian Komoditas — <?= htmlspecialchars($comparisonLabelB) ?></h2>
+                <p>Daftar dan ringkasan berikut menggunakan bulan Periode B.</p>
+            </div>
+        <?php endif; ?>
 
         <!-- Kartu Ringkasan -->
         <div class="kpi-row-canva">
