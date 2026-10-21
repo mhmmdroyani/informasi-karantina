@@ -296,11 +296,12 @@ $normalizeCountryName = function ($name) use ($countryAliases) {
 };
 
 $uniqueDest = [];
-$destValues = [];
+$destCounts = [];
 foreach ($allMonthlyData as $r) {
     if (!empty($r[$fieldTujuan])) {
         $parts = preg_split('/\s*(?:,|;|\/|\|)\s*/', (string)$r[$fieldTujuan]);
         $validParts = array_values(array_filter($parts, fn($x) => trim((string)$x) !== ''));
+        $rowDestinations = [];
         foreach ($validParts as $p) {
             $destinationName = $isDomestik
                 ? preg_replace('/\s+/', ' ', trim((string)$p))
@@ -310,7 +311,10 @@ foreach ($allMonthlyData as $r) {
             }
             $destinationKey = strtolower($destinationName);
             $uniqueDest[$destinationKey] = $destinationName;
-            $destValues[$destinationKey] = ($destValues[$destinationKey] ?? 0) + (float)$r['nilai_ekspor'] / max(1, count($validParts));
+            $rowDestinations[$destinationKey] = true;
+        }
+        foreach ($rowDestinations as $destinationKey => $_) {
+            $destCounts[$destinationKey] = ($destCounts[$destinationKey] ?? 0) + 1;
         }
     }
 }
@@ -348,7 +352,7 @@ if ($isDomestik) {
     $subWilayah = hitung_benua($daftarDest) . ' Benua';
 }
 
-arsort($destValues);
+arsort($destCounts);
 
 // Labels
 $labelKegiatan = get_label_kegiatan($jenis);
@@ -837,8 +841,7 @@ foreach ($periodeOptions as $periodOption) {
                         <div class="dest-list">
                             <?php 
                             $dIdx = 0;
-                            foreach (array_slice($destValues, 0, $topN > 0 ? $topN : count($destValues), true) as $dName => $dVal):
-                                $dPct = $totalNilai > 0 ? round(($dVal / $totalNilai) * 100, 0) : 0;
+                            foreach (array_slice($destCounts, 0, $topN > 0 ? $topN : count($destCounts), true) as $dName => $_):
                                 $flagCode = null;
                                 if (!$isDomestik) {
                                     $destinationKey = strtolower(trim($dName));
@@ -854,7 +857,6 @@ foreach ($periodeOptions as $periodOption) {
                                     <?php if ($flagCode): ?><img class="dest-flag" src="https://flagcdn.com/w40/<?= $flagCode ?>.png" alt="Bendera <?= htmlspecialchars($dName) ?>"><?php endif; ?>
                                     <?php if (!$flagCode): ?><span class="dest-dot" style="background-color: <?= $colors[$dIdx % count($colors)] ?>;"></span><?php endif; ?>
                                     <span class="dest-name"><?= htmlspecialchars(strtoupper($dName)) ?></span>
-                                    <span class="dest-val"><?= format_rupiah_singkat($dVal) ?> · <?= $dPct ?>%</span>
                                 </div>
                             <?php $dIdx++; endforeach; ?>
                         </div>

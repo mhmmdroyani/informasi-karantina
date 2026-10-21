@@ -595,11 +595,6 @@ body {
   text-overflow: ellipsis;
 }
 
-.dest-val {
-  font-weight: 600;
-  color: var(--ink-soft);
-}
-
 .board-empty-state {
   background: var(--surface);
   border: 1px solid var(--line);
