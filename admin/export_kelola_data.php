@@ -65,6 +65,7 @@ $columns = [
     'Status',
 ];
 $lastColumn = 'K';
+$wrappedColumnWidths = [2 => 32, 7 => 26, 8 => 26, 9 => 26];
 
 $exportStage = 'membuat worksheet Excel';
 $spreadsheet = new Spreadsheet();
@@ -86,6 +87,7 @@ foreach ($columns as $index => $column) {
 foreach ($rows as $index => $row) {
     $exportStage = 'memasukkan baris data ke Excel (' . ($index + 1) . ')';
     $excelRow = $index + 6;
+    $wrappedLines = 1;
     $commodity = (string)($row['nama_komoditas'] ?? '');
     if (!empty($row['nama_komoditas_lokal'])) {
         $commodity .= "\n" . $row['nama_komoditas_lokal'];
@@ -111,7 +113,16 @@ foreach ($rows as $index => $row) {
         } else {
             $sheet->setCellValueExplicit($coordinate, $value, DataType::TYPE_STRING);
         }
+
+        if (isset($wrappedColumnWidths[$columnIndex])) {
+            $cellLines = 0;
+            foreach (explode("\n", (string)$value) as $line) {
+                $cellLines += max(1, (int)ceil(mb_strlen($line, 'UTF-8') / $wrappedColumnWidths[$columnIndex]));
+            }
+            $wrappedLines = max($wrappedLines, $cellLines);
+        }
     }
+    $sheet->getRowDimension($excelRow)->setRowHeight(max(22, $wrappedLines * 15 + 4));
 }
 
 $lastRow = max(5, count($rows) + 5);
@@ -137,7 +148,7 @@ $sheet->getStyle("A5:{$lastColumn}{$lastRow}")->applyFromArray([
 ]);
 if ($rows !== []) {
     $sheet->getStyle("A6:{$lastColumn}{$lastRow}")->getFont()->setSize(10);
-    $sheet->getStyle("A6:{$lastColumn}{$lastRow}")->getAlignment()->setVertical(Alignment::VERTICAL_TOP);
+    $sheet->getStyle("A6:{$lastColumn}{$lastRow}")->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
     $sheet->getStyle("A6:A{$lastRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
     $sheet->getStyle("D6:E{$lastRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
     $sheet->getStyle("G6:G{$lastRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
@@ -147,9 +158,7 @@ if ($rows !== []) {
     $sheet->getStyle("D6:D{$lastRow}")->getNumberFormat()->setFormatCode('#,##0');
     $sheet->getStyle("E6:E{$lastRow}")->getNumberFormat()->setFormatCode('#,##0.00');
     $sheet->getStyle("G6:G{$lastRow}")->getNumberFormat()->setFormatCode('#,##0');
-
     for ($row = 6; $row <= $lastRow; $row++) {
-        $sheet->getRowDimension($row)->setRowHeight(36);
         if (($row - 6) % 2 === 1) {
             $sheet->getStyle("A{$row}:{$lastColumn}{$row}")
                 ->getFill()
