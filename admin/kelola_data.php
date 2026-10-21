@@ -220,6 +220,26 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
             <input type="hidden" name="top_n" value="<?= (int)($setting['top_n'] ?? 5) ?>">
             <input type="hidden" name="urutkan_berdasarkan" value="<?= htmlspecialchars(($setting['urutkan_berdasarkan'] ?? '') === 'frekuensi' ? 'frekuensi' : 'nilai_ekspor') ?>">
 
+            <?php if (!empty($dataItems)): ?>
+                <div class="kelola-data-action-bar">
+                    <div class="kelola-data-counts">
+                        <span class="badge badge-neutral">Total: <strong><?= $totalItem ?></strong></span>
+                        <span class="badge badge-brand">Publish: <strong><?= $totalPublished ?></strong></span>
+                        <span class="badge badge-neutral">Draft: <strong><?= $totalDraft ?></strong></span>
+                    </div>
+                    <div class="kelola-data-actions">
+                        <button type="submit" formaction="hapus_data.php" formmethod="POST" name="action" value="batch_ids" class="btn btn-danger btn-sm" data-confirm="Yakin ingin menghapus semua data yang dicentang? Tindakan ini tidak bisa dibatalkan." data-confirm-tone="danger">
+                            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 01-1 1v3M4 7h16"></path></svg>
+                            <span>Hapus Terpilih</span>
+                        </button>
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                            <span>Update</span>
+                        </button>
+                    </div>
+                </div>
+            <?php endif; ?>
+
             <!-- Tabel Data Komoditas -->
             <div class="card" style="margin-top: 20px; overflow: hidden;">
                 <!-- Toolbar Tabel -->
@@ -348,24 +368,6 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
                     </table>
                 </div>
 
-                <!-- Footer Action Bar -->
-                <?php if (!empty($dataItems)): ?>
-                    <div style="padding: 14px 18px; background: var(--bg); border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px;">
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <span class="badge badge-neutral">Total: <strong><?= $totalItem ?></strong></span>
-                            <span class="badge badge-brand">Publish: <strong><?= $totalPublished ?></strong></span>
-                            <span class="badge badge-neutral">Draft: <strong><?= $totalDraft ?></strong></span>
-                        </div>
-                        <button type="submit" formaction="hapus_data.php" formmethod="POST" name="action" value="batch_ids" class="btn btn-danger btn-sm" data-confirm="Yakin ingin menghapus semua data yang dicentang? Tindakan ini tidak bisa dibatalkan." data-confirm-tone="danger">
-                            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                            <span>Hapus Terpilih</span>
-                        </button>
-                        <button type="submit" class="btn btn-primary btn-sm">
-                            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                            <span>Update</span>
-                        </button>
-                    </div>
-                <?php endif; ?>
             </div>
         </form>
     </div>
