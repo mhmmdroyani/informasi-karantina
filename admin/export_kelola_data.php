@@ -117,9 +117,10 @@ foreach ($rows as $index => $row) {
 $lastRow = max(5, count($rows) + 5);
 $exportStage = 'memformat tabel Excel';
 $sheet->getStyle("A1:{$lastColumn}3")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-$sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
-$sheet->getStyle('A2')->getFont()->setBold(true)->setSize(12);
-$sheet->getStyle('A3')->getFont()->setItalic(true)->setSize(10);
+$sheet->getStyle("A1:{$lastColumn}3")->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
+$sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16)->getColor()->setRGB('17365D');
+$sheet->getStyle('A2')->getFont()->setBold(true)->setSize(11);
+$sheet->getStyle('A3')->getFont()->setItalic(true)->setSize(10)->getColor()->setRGB('5B6573');
 $sheet->getStyle("A5:{$lastColumn}5")->applyFromArray([
     'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
     'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '17365D']],
@@ -131,24 +132,42 @@ $sheet->getStyle("A5:{$lastColumn}5")->applyFromArray([
 ]);
 $sheet->getStyle("A5:{$lastColumn}{$lastRow}")->applyFromArray([
     'borders' => [
-        'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '808080']],
+        'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => 'D7DEE8']],
     ],
 ]);
 if ($rows !== []) {
+    $sheet->getStyle("A6:{$lastColumn}{$lastRow}")->getFont()->setSize(10);
+    $sheet->getStyle("A6:{$lastColumn}{$lastRow}")->getAlignment()->setVertical(Alignment::VERTICAL_TOP);
     $sheet->getStyle("A6:A{$lastRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
     $sheet->getStyle("D6:E{$lastRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
     $sheet->getStyle("G6:G{$lastRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
     $sheet->getStyle("C6:C{$lastRow}")->getAlignment()->setWrapText(true);
     $sheet->getStyle("H6:K{$lastRow}")->getAlignment()->setWrapText(true);
+    $sheet->getStyle("K6:K{$lastRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
     $sheet->getStyle("D6:D{$lastRow}")->getNumberFormat()->setFormatCode('#,##0');
     $sheet->getStyle("E6:E{$lastRow}")->getNumberFormat()->setFormatCode('#,##0.00');
     $sheet->getStyle("G6:G{$lastRow}")->getNumberFormat()->setFormatCode('#,##0');
+
+    for ($row = 6; $row <= $lastRow; $row++) {
+        $sheet->getRowDimension($row)->setRowHeight(36);
+        if (($row - 6) % 2 === 1) {
+            $sheet->getStyle("A{$row}:{$lastColumn}{$row}")
+                ->getFill()
+                ->setFillType(Fill::FILL_SOLID)
+                ->getStartColor()
+                ->setRGB('F3F6FA');
+        }
+    }
 }
 $sheet->getRowDimension(5)->setRowHeight(32);
+$sheet->getRowDimension(1)->setRowHeight(28);
+$sheet->getRowDimension(2)->setRowHeight(22);
+$sheet->getRowDimension(3)->setRowHeight(20);
 
 foreach (['A' => 7, 'B' => 20, 'C' => 32, 'D' => 14, 'E' => 16, 'F' => 16, 'G' => 22, 'H' => 26, 'I' => 26, 'J' => 26, 'K' => 14] as $column => $width) {
     $sheet->getColumnDimension($column)->setWidth($width);
 }
+$sheet->getSheetView()->setZoomScale(75);
 
 $exportStage = 'mengatur orientasi halaman Excel';
 $sheet->getPageSetup()
