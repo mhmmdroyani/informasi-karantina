@@ -217,44 +217,8 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
             <input type="hidden" name="bln_akhir" value="<?= htmlspecialchars($cal['bln_akhir']) ?>">
             <input type="hidden" name="tgl_awal" value="<?= htmlspecialchars($cal['tgl_awal']) ?>">
             <input type="hidden" name="tgl_akhir" value="<?= htmlspecialchars($cal['tgl_akhir']) ?>">
-
-            <!-- Pengaturan Embed Card -->
-            <div class="card card-pad" style="margin-top: 20px;">
-                <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 6px; margin-bottom: 8px; border-bottom: 1px solid var(--line);">
-                    <div>
-                        <h2 style="font-size: 14px; font-weight: 700; color: var(--ink); display: flex; align-items: center; gap: 8px;">
-                            <span>Pengaturan Tampilan Board (<?= $labelKegiatan ?> &bull; <?= ucfirst($kategori) ?>)</span>
-                        </h2>
-                    </div>
-                    <button type="submit" class="btn btn-primary">
-                        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                        <span>Update</span>
-                    </button>
-                </div>
-
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px;">
-                    <div>
-                        <label class="field-label">Jumlah Komoditas Tampil (Top-N)</label>
-                        <select name="top_n" class="field-input">
-                            <option value="1" <?= ($setting['top_n'] == 1) ? 'selected' : '' ?>>Top 1 Komoditas</option>
-                            <option value="3" <?= ($setting['top_n'] == 3) ? 'selected' : '' ?>>Top 3 Komoditas</option>
-                            <option value="5" <?= ($setting['top_n'] == 5) ? 'selected' : '' ?>>Top 5 Komoditas (Default)</option>
-                            <option value="10" <?= ($setting['top_n'] == 10) ? 'selected' : '' ?>>Top 10 Komoditas</option>
-                            <option value="0" <?= ($setting['top_n'] == 0) ? 'selected' : '' ?>>Tampilkan Semua Data yang Dipublish</option>
-                        </select>
-                        <p class="field-hint">Komoditas yang masuk chart diambil sebanyak limit ini.</p>
-                    </div>
-
-                    <div>
-                        <label class="field-label">Urutkan Peringkat Berdasarkan</label>
-                        <select name="urutkan_berdasarkan" class="field-input">
-                            <option value="nilai_ekspor" <?= ($setting['urutkan_berdasarkan'] === 'nilai_ekspor') ? 'selected' : '' ?>>Nilai Tertinggi (Rp)</option>
-                            <option value="frekuensi" <?= ($setting['urutkan_berdasarkan'] === 'frekuensi') ? 'selected' : '' ?>>Frekuensi Terbanyak</option>
-                        </select>
-                        <p class="field-hint">Menentukan urutan ranking komoditas pada infografis.</p>
-                    </div>
-                </div>
-            </div>
+            <input type="hidden" name="top_n" value="<?= (int)($setting['top_n'] ?? 5) ?>">
+            <input type="hidden" name="urutkan_berdasarkan" value="<?= htmlspecialchars(($setting['urutkan_berdasarkan'] ?? '') === 'frekuensi' ? 'frekuensi' : 'nilai_ekspor') ?>">
 
             <!-- Tabel Data Komoditas -->
             <div class="card" style="margin-top: 20px; overflow: hidden;">
