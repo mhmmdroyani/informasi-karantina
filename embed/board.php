@@ -98,44 +98,44 @@ if (is_string($requestedSort) && in_array($requestedSort, ['nilai_ekspor', 'frek
 $compareMode = $comparisonPage && $periodeA !== '' && $periodeB !== '';
 $comparisonLabelA = format_label_periode_kode($periodeA) ?: $periodeA;
 $comparisonLabelB = format_label_periode_kode($periodeB) ?: $periodeB;
+$comparisonRangeLabel = $periodeA === $periodeB
+    ? $comparisonLabelA
+    : (format_label_periode_kode($rentangPeriodeAwal) ?: $rentangPeriodeAwal)
+        . ' - ' .
+        (format_label_periode_kode($rentangPeriodeAkhir) ?: $rentangPeriodeAkhir);
 
 $comparison = null;
 $comparisonMonthly = [];
 if ($compareMode && $periodeA !== '' && $periodeB !== '') {
-    $compareStmt = $pdo->prepare("SELECT periode, nilai_ekspor, volume, frekuensi, {$fieldTujuan} AS lokasi_tujuan FROM ekspor_komoditas WHERE jenis_kegiatan = ? AND kategori = ? AND is_published = 1 AND periode IN (?, ?)");
-    $compareStmt->execute([$jenis, $kategori, $periodeA, $periodeB]);
+    $compareStmt = $pdo->prepare("SELECT periode, nilai_ekspor, volume, frekuensi, {$fieldTujuan} AS lokasi_tujuan FROM ekspor_komoditas WHERE jenis_kegiatan = ? AND kategori = ? AND is_published = 1 AND periode REGEXP '^[0-9]{4}-[0-9]{2}$' AND periode >= ? AND periode <= ?");
+    $compareStmt->execute([$jenis, $kategori, $rentangPeriodeAwal, $rentangPeriodeAkhir]);
     $comparisonRows = $compareStmt->fetchAll();
-    $comparison = [];
-    foreach ([$periodeA, $periodeB] as $period) {
-        $rowsForPeriod = array_filter($comparisonRows, fn($row) => $row['periode'] === $period);
-        $countries = [];
-        foreach ($rowsForPeriod as $row) {
-            $parts = preg_split('/\s*(?:,|;|\/|\|)\s*/', (string)($row['lokasi_tujuan'] ?? ''));
-            foreach ($parts as $country) {
-                $country = trim($country);
-                if ($country !== '') $countries[strtolower($country)] = $country;
-            }
+    $countries = [];
+    foreach ($comparisonRows as $row) {
+        $parts = preg_split('/\s*(?:,|;|\/|\|)\s*/', (string)($row['lokasi_tujuan'] ?? ''));
+        foreach ($parts as $country) {
+            $country = trim($country);
+            if ($country !== '') $countries[strtolower($country)] = $country;
         }
-        $comparison[$period] = [
-            'nilai' => (float)array_sum(array_column($rowsForPeriod, 'nilai_ekspor')),
-            'volume' => (float)array_sum(array_column($rowsForPeriod, 'volume')),
-            'frekuensi' => (int)array_sum(array_column($rowsForPeriod, 'frekuensi')),
-            'negara' => count($countries)
-        ];
     }
+    $comparison = [
+        'nilai' => (float)array_sum(array_column($comparisonRows, 'nilai_ekspor')),
+        'volume' => (float)array_sum(array_column($comparisonRows, 'volume')),
+        'frekuensi' => (int)array_sum(array_column($comparisonRows, 'frekuensi')),
+        'negara' => count($countries)
+    ];
 
-    $yearA = substr($periodeA, 0, 4);
-    $yearB = substr($periodeB, 0, 4);
-    $comparisonYears = array_values(array_unique([$yearA, $yearB]));
+    $comparisonYears = range((int)substr($rentangPeriodeAwal, 0, 4), (int)substr($rentangPeriodeAkhir, 0, 4));
+    $comparisonYears = array_map('strval', $comparisonYears);
     $trendStmt = $pdo->prepare("SELECT periode, nilai_ekspor, volume, frekuensi, {$fieldTujuan} AS lokasi_tujuan
         FROM ekspor_komoditas
         WHERE jenis_kegiatan = ? AND kategori = ? AND is_published = 1
             AND periode REGEXP '^[0-9]{4}-[0-9]{2}$'
-            AND LEFT(periode, 4) IN (?, ?)
+            AND periode >= ? AND periode <= ?
         ORDER BY periode");
-    $trendStmt->execute([$jenis, $kategori, $yearA, $yearB]);
+    $trendStmt->execute([$jenis, $kategori, $rentangPeriodeAwal, $rentangPeriodeAkhir]);
     $trendRows = $trendStmt->fetchAll();
-    foreach ([$yearA, $yearB] as $year) {
+    foreach ($comparisonYears as $year) {
         $comparisonMonthly[$year] = [
             'nilai' => array_fill(1, 12, 0.0),
             'volume' => array_fill(1, 12, 0.0),
@@ -183,7 +183,7 @@ if (isset($_GET['bln_awal']) || isset($_GET['thn_awal']) || isset($_GET['tahun_a
 }
 
 $labelTahunPublik = $comparisonPage
-    ? ($compareMode ? $comparisonLabelA . ' vs ' . $comparisonLabelB : 'BELUM ADA PERIODE DATA')
+    ? ($compareMode ? $comparisonRangeLabel : 'BELUM ADA PERIODE DATA')
     : ($periodeA !== '' && $periodeB !== ''
         ? ($rentangPeriodeAwal === $rentangPeriodeAkhir
             ? (format_label_periode_kode($rentangPeriodeAwal) ?: $rentangPeriodeAwal)
@@ -196,8 +196,9 @@ $labelTahunPublik = $comparisonPage
 $queryParams = [$jenis, $kategori];
 $sql = "SELECT * FROM ekspor_komoditas WHERE jenis_kegiatan = ? AND kategori = ? AND is_published = 1";
 if ($comparisonPage && $periodeFilter !== '') {
-    $sql .= " AND periode = ?";
-    $queryParams[] = $periodeFilter;
+    $sql .= " AND periode REGEXP '^[0-9]{4}-[0-9]{2}$' AND periode >= ? AND periode <= ?";
+    $queryParams[] = $rentangPeriodeAwal;
+    $queryParams[] = $rentangPeriodeAkhir;
 } elseif (!$comparisonPage && $periodeA !== '' && $periodeB !== '') {
     $sql .= " AND periode REGEXP '^[0-9]{4}-[0-9]{2}$' AND periode >= ? AND periode <= ?";
     $queryParams[] = $rentangPeriodeAwal;
@@ -512,7 +513,7 @@ foreach ($periodeOptions as $periodOption) {
     <section class="board-hero">
         <h1 class="board-hero-title"><?= $comparisonPage ? 'Laporan Perbandingan' : 'Top ' . ($topN > 0 ? $topN : 'Semua') . ' Komoditas' ?> <?= $labelKategori ?> — <?= $labelKegiatan ?></h1>
         <?php if ($comparisonPage): ?>
-            <p class="board-hero-desc">Perbandingan data pada Periode A dan Periode B.</p>
+            <p class="board-hero-desc">Ringkasan akumulasi data dari Periode A hingga Periode B.</p>
         <?php endif; ?>
 
         <div class="board-periode-wrap">
@@ -607,34 +608,27 @@ foreach ($periodeOptions as $periodOption) {
         <section class="board-comparison" aria-label="Perbandingan periode">
             <div class="board-comparison-header">
                 <div>
-                    <h2>Perbandingan Periode</h2>
-                    <p>Bandingkan hasil laporan pada dua bulan yang dipilih.</p>
+                    <h2>Ringkasan Periode</h2>
+                    <p>Total akumulasi seluruh bulan dalam rentang yang dipilih.</p>
                 </div>
             </div>
             <div class="board-comparison-grid">
                 <?php foreach ($comparisonMetrics as $metric):
-                    $valueA = $comparison[$periodeA][$metric['key']];
-                    $valueB = $comparison[$periodeB][$metric['key']];
-                    $change = $valueA == 0 ? ($valueB == 0 ? 0 : null) : (($valueB - $valueA) / abs($valueA)) * 100;
+                    $value = $comparison[$metric['key']];
                 ?>
                     <div class="board-comparison-card">
                         <span><?= htmlspecialchars($metric['label']) ?></span>
                         <div class="comparison-values">
                             <div>
-                                <small><?= htmlspecialchars($comparisonLabelA) ?></small>
-                                <strong><?= $metric['format']($valueA) ?></strong>
-                            </div>
-                            <div>
-                                <small><?= htmlspecialchars($comparisonLabelB) ?></small>
-                                <strong><?= $metric['format']($valueB) ?></strong>
+                                <small><?= htmlspecialchars($comparisonRangeLabel) ?></small>
+                                <strong><?= $metric['format']($value) ?></strong>
                             </div>
                         </div>
-                        <em class="<?= $change !== null && $change < 0 ? 'is-down' : 'is-up' ?>"><?= $change === null ? 'Baru' : sprintf('%+.1f%%', $change) ?></em>
                     </div>
                 <?php endforeach; ?>
             </div>
             <div class="board-comparison-chart">
-                <h3>Grafik Perbandingan</h3>
+                <h3>Grafik Bulanan dalam Rentang Periode</h3>
                 <div class="comparison-chart-grid">
                     <div class="comparison-chart-card"><span>Nilai <?= htmlspecialchars($labelKegiatan) ?> (Miliar Rp)</span><div class="comparison-chart-canvas"><canvas id="comparisonChartNilai"></canvas></div></div>
                     <div class="comparison-chart-card"><span>Volume</span><div class="comparison-chart-canvas"><canvas id="comparisonChartVolume"></canvas></div></div>
@@ -687,7 +681,7 @@ foreach ($periodeOptions as $periodOption) {
     <?php if (empty($data)): ?>
         <div class="board-empty-state">
             <h3>Data Belum Dipublikasikan</h3>
-            <p><?= $periodeB === '' ? 'Belum tersedia data bulanan yang dipublikasikan.' : 'Belum ada data yang dipublikasikan untuk ' . htmlspecialchars($comparisonLabelB) . '.' ?></p>
+            <p><?= $periodeB === '' ? 'Belum tersedia data bulanan yang dipublikasikan.' : 'Belum ada data yang dipublikasikan untuk ' . htmlspecialchars($comparisonRangeLabel) . '.' ?></p>
         </div>
     <?php elseif (!$comparisonPage): ?>
 
