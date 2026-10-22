@@ -310,11 +310,11 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
             <div class="card" style="margin-top: 20px; overflow: hidden;">
                 <!-- Toolbar Tabel -->
                  
-                <div style="padding: 14px 18px; background: var(--bg); border-bottom: 1px solid var(--line); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; font-size: 12px;">
-                    <div class="kelola-data-toolbar-right" style="display: flex; align-items: center; gap: 10px; margin-left: auto; flex-wrap: wrap;">
+                <div style="padding: 14px 18px; background: var(--bg); border-bottom: 1px solid var(--line); display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 10px; font-size: 12px;">
+                    <div class="kelola-data-toolbar-right" style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                         <div id="periodeAFilterWrap" style="display: flex; align-items: center; gap: 6px;">
                             <label for="periodeAFilter" style="font-weight: 600; color: var(--ink-soft);">Periode A:</label>
-                            <select id="periodeAFilter" class="field-input" onchange="updatePeriodRange()" style="width: 175px; padding: 7px 10px; font-size: 12px;">
+                            <select id="periodeAFilter" class="field-input" onchange="updatePeriodRange('a')" style="width: 175px; padding: 7px 10px; font-size: 12px;">
                                 <option value="">Pilih periode</option>
                                 <?php foreach ($validPeriods as $periodeOption): ?>
                                     <?php $periodeLabel = format_label_periode_kode($periodeOption) ?: $periodeOption; ?>
@@ -324,7 +324,7 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
                         </div>
                         <div id="periodeBFilterWrap" style="display: flex; align-items: center; gap: 6px;">
                             <label for="periodeBFilter" style="font-weight: 600; color: var(--ink-soft);">Periode B:</label>
-                            <select id="periodeBFilter" class="field-input" onchange="updatePeriodRange()" style="width: 175px; padding: 7px 10px; font-size: 12px;">
+                            <select id="periodeBFilter" class="field-input" onchange="updatePeriodRange('b')" style="width: 175px; padding: 7px 10px; font-size: 12px;">
                                 <option value="">Pilih periode</option>
                                 <?php foreach ($validPeriods as $periodeOption): ?>
                                     <?php $periodeLabel = format_label_periode_kode($periodeOption) ?: $periodeOption; ?>
@@ -465,9 +465,13 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
         if (head) head.checked = state;
     }
 
-    function updatePeriodRange() {
+    function updatePeriodRange(changedPeriod) {
         const periodeA = document.getElementById('periodeAFilter').value;
-        const periodeB = document.getElementById('periodeBFilter').value;
+        const periodeBFilter = document.getElementById('periodeBFilter');
+        if (changedPeriod === 'a') {
+            periodeBFilter.value = periodeA;
+        }
+        const periodeB = periodeBFilter.value;
         const params = new URLSearchParams({
             jenis: <?= json_encode($jenis) ?>,
             kategori: <?= json_encode($kategori) ?>,
