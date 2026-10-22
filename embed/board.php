@@ -881,14 +881,13 @@ foreach ($periodeOptions as $periodOption) {
                 </div>
                 <div class="panel-body-canva">
                     <div class="top-bar-items">
-                        <?php foreach ($data as $i => $row): 
-                            $comName = ($kategori === 'ikan' && !empty($row['nama_komoditas_lokal'])) ? $row['nama_komoditas_lokal'] : $row['nama_komoditas'];
-                            $pct = $totalNilai > 0 ? round(($row['nilai_ekspor'] / $totalNilai) * 100, 1) : 0;
+                        <?php foreach ($summaryItems as $i => $item):
+                            $pct = $totalNilai > 0 ? round(($item['value'] / $totalNilai) * 100, 1) : 0;
                         ?>
                             <div class="top-bar-row">
                                 <span class="tbr-badge"><?= $i + 1 ?></span>
-                                <span class="tbr-label"><?= htmlspecialchars($comName) ?></span>
-                                <span class="tbr-val"><?= format_rupiah_singkat($row['nilai_ekspor']) ?></span>
+                                <span class="tbr-label"><?= htmlspecialchars($item['name']) ?></span>
+                                <span class="tbr-val"><?= format_rupiah_singkat($item['value']) ?></span>
                                 <span class="tbr-pct"><?= $pct ?>%</span>
                             </div>
                         <?php endforeach; ?>
@@ -936,11 +935,6 @@ foreach ($periodeOptions as $periodOption) {
         </div>
 
         <script>
-        const rawLabels = <?= json_encode(array_map(function($r) use ($kategori) {
-            return ($kategori === 'ikan' && !empty($r['nama_komoditas_lokal'])) ? $r['nama_komoditas_lokal'] : $r['nama_komoditas'];
-        }, $data)) ?>;
-        const rawValues = <?= json_encode(array_map('floatval', array_column($data, 'nilai_ekspor'))) ?>;
-        const colors = <?= json_encode($colors) ?>;
         const summaryLabels = <?= json_encode(array_column($summaryItems, 'name'), JSON_UNESCAPED_UNICODE) ?>;
         const summaryValues = <?= json_encode(array_map('floatval', array_column($summaryItems, 'value'))) ?>;
         const summaryColors = <?= json_encode(array_column($summaryItems, 'color')) ?>;
@@ -976,14 +970,14 @@ foreach ($periodeOptions as $periodOption) {
         });
 
         // 2. Bar Chart
-        const barLabels = rawLabels.map(l => l.length > 15 ? l.substring(0, 15) + '...' : l);
+        const barLabels = summaryLabels.map(l => l.length > 15 ? l.substring(0, 15) + '...' : l);
         new Chart(document.getElementById('barChartMaster'), {
             type: 'bar',
             data: {
                 labels: barLabels,
                 datasets: [{
                     label: 'Nilai',
-                    data: rawValues.map(v => v / 1e9),
+                    data: summaryValues.map(v => v / 1e9),
                     backgroundColor: '#1d4ed8',
                     borderRadius: 4,
                     barPercentage: 0.6
