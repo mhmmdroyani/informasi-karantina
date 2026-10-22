@@ -740,7 +740,10 @@ foreach ($periodeOptions as $periodOption) {
                     <div class="kpi-volume-secondary">
                         <?php foreach ($secondaryVolumes as $unit => $volume): ?>
                             <?php $volumeSekunderTampilan = formatVolumeOtomatis($volume, $unit); ?>
-                            <span><?= $volumeSekunderTampilan['angka'] ?> <?= htmlspecialchars($volumeSekunderTampilan['satuan']) ?></span>
+                            <span class="kpi-volume-row">
+                                <strong><?= $volumeSekunderTampilan['angka'] ?></strong>
+                                <small><?= htmlspecialchars($volumeSekunderTampilan['satuan']) ?></small>
+                            </span>
                         <?php endforeach; ?>
                     </div>
                 </div>
