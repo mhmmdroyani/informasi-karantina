@@ -23,10 +23,24 @@ if ($action === 'batch_ids') {
     }
 
     $ids = isset($_POST['published_ids']) && is_array($_POST['published_ids']) ? array_map('intval', $_POST['published_ids']) : [];
+    $ids = array_values(array_unique(array_filter($ids, static function ($id) {
+        return $id > 0;
+    })));
+    $periode = trim($_POST['periode'] ?? '');
     if (!empty($ids)) {
-        $placeholders = implode(',', array_fill(0, count($ids), '?'));
-        $stmt = $pdo->prepare("DELETE FROM ekspor_komoditas WHERE id IN ($placeholders)");
-        $stmt->execute($ids);
+        if (!preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $periode)) {
+            http_response_code(400);
+            exit('Periode data tidak valid.');
+        }
+        $idPlaceholders = implode(',', array_fill(0, count($ids), '?'));
+        $stmt = $pdo->prepare(
+            "DELETE FROM ekspor_komoditas
+             WHERE id IN ($idPlaceholders)
+               AND jenis_kegiatan = ?
+               AND kategori = ?
+               AND periode = ?"
+        );
+        $stmt->execute(array_merge($ids, [$jenis, $kategori, $periode]));
     }
 
     $redirectParams = [

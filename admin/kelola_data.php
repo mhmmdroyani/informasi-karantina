@@ -290,17 +290,19 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
                         <span class="badge badge-neutral">Draft: <strong><?= $totalDraft ?></strong></span>
                     </div>
                     <div class="kelola-data-actions" id="kelolaDataActions">
-                        <button type="submit" formaction="hapus_data.php" formmethod="POST" name="action" value="batch_ids" class="btn btn-danger btn-sm" data-confirm="Yakin ingin menghapus semua data yang dicentang? Tindakan ini tidak bisa dibatalkan." data-confirm-tone="danger">
+                        <button type="submit" form="formUpdatePublik" formaction="hapus_data.php" formmethod="POST" name="action" value="batch_ids" class="btn btn-danger btn-sm" data-confirm="Yakin ingin menghapus semua data yang dicentang? Tindakan ini tidak bisa dibatalkan." data-confirm-tone="danger">
                             <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 01-1 1v3M4 7h16"></path></svg>
                             <span>Hapus</span>
                         </button>
-                        <button type="submit" class="btn btn-primary btn-sm">
+                        <button type="submit" form="formUpdatePublik" class="btn btn-primary btn-sm">
                             <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                             <span>Update</span>
                         </button>
                     </div>
                 </div>
             <?php endif; ?>
+
+        </form>
 
             <!-- Tabel Data Komoditas -->
             <div class="card" style="margin-top: 20px; overflow: hidden;">
@@ -381,8 +383,8 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
                                     <tr class="<?= $row['is_published'] ? 'is-published' : '' ?>">
                                         <td style="text-align: center;">
                                             <?php if (!$aggregateMode): ?>
-                                                <input type="hidden" name="all_ids[]" value="<?= $row['id'] ?>">
-                                                <input type="checkbox" name="published_ids[]" value="<?= $row['id'] ?>" <?= $row['is_published'] ? 'checked' : '' ?> class="item-checkbox">
+                                                <input type="hidden" form="formUpdatePublik" name="all_ids[]" value="<?= $row['id'] ?>">
+                                                <input type="checkbox" form="formUpdatePublik" name="published_ids[]" value="<?= $row['id'] ?>" <?= $row['is_published'] ? 'checked' : '' ?> class="item-checkbox">
                                             <?php endif; ?>
                                         </td>
                                         <td><?= htmlspecialchars($row['klasifikasi'] ?? '-') ?></td>
@@ -451,7 +453,6 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
                 </div>
 
             </div>
-        </form>
     </div>
 
     <script>
