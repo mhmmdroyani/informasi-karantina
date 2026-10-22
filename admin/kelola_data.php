@@ -282,11 +282,7 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
             <input type="hidden" name="top_n" value="<?= (int)($setting['top_n'] ?? 5) ?>">
             <input type="hidden" name="urutkan_berdasarkan" value="<?= htmlspecialchars(($setting['urutkan_berdasarkan'] ?? '') === 'frekuensi' ? 'frekuensi' : 'nilai_ekspor') ?>">
 
-            <?php if ($aggregateMode): ?>
-                <div class="alert" style="margin-top: 16px; background: var(--brand-soft); border-color: rgba(15, 118, 110, 0.25); color: #0c5c53;">
-                    Data ditampilkan sebagai penjumlahan periode <?= htmlspecialchars($rangePeriodLabel) ?>. Untuk mengubah status publikasi atau menghapus data, pilih bulan yang sama pada Periode A dan Periode B.
-                </div>
-            <?php elseif (!empty($dataItems)): ?>
+            <?php if (!$aggregateMode && !empty($dataItems)): ?>
                 <div class="kelola-data-action-bar">
                     <div class="kelola-data-counts">
                         <span class="badge badge-neutral">Total: <strong><?= $totalItem ?></strong></span>
