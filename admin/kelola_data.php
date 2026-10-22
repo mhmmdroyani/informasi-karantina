@@ -311,12 +311,6 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
                 <!-- Toolbar Tabel -->
                  
                 <div style="padding: 14px 18px; background: var(--bg); border-bottom: 1px solid var(--line); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; font-size: 12px;">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <?php if (!$aggregateMode): ?>
-                            <button type="button" onclick="toggleAllCheckboxes(true)" class="btn btn-secondary btn-sm">Centang Semua</button>
-                            <button type="button" onclick="toggleAllCheckboxes(false)" class="btn btn-secondary btn-sm">Hapus Semua Centang</button>
-                        <?php endif; ?>
-                    </div>
                     <div class="kelola-data-toolbar-right" style="display: flex; align-items: center; gap: 10px; margin-left: auto; flex-wrap: wrap;">
                         <div id="periodeAFilterWrap" style="display: flex; align-items: center; gap: 6px;">
                             <label for="periodeAFilter" style="font-weight: 600; color: var(--ink-soft);">Periode A:</label>
