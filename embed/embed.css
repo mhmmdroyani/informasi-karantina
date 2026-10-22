@@ -516,6 +516,7 @@ body {
   position: relative;
   min-height: 210px;
   width: 100%;
+  margin-top: 18px;
 }
 
 .top-bar-items {
