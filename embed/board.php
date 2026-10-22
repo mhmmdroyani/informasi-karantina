@@ -71,7 +71,21 @@ if (
 $periodeOptions = array_keys($periodeOptionSet);
 sort($periodeOptions, SORT_STRING);
 $periodeA = trim($_GET['periode_a'] ?? ($periodeOptions[0] ?? ''));
-$periodeB = trim($_GET['periode_b'] ?? (count($periodeOptions) > 1 ? end($periodeOptions) : ($periodeOptions[0] ?? '')));
+$defaultPeriodeB = (new DateTimeImmutable('first day of this month'))
+    ->modify('-1 month')
+    ->format('Y-m');
+if (!in_array($defaultPeriodeB, $periodeOptions, true)) {
+    $availablePreviousPeriods = array_values(array_filter(
+        $periodeOptions,
+        static function ($period) use ($defaultPeriodeB) {
+            return $period <= $defaultPeriodeB;
+        }
+    ));
+    $defaultPeriodeB = $availablePreviousPeriods !== []
+        ? end($availablePreviousPeriods)
+        : ($periodeOptions[count($periodeOptions) - 1] ?? '');
+}
+$periodeB = trim($_GET['periode_b'] ?? $defaultPeriodeB);
 if (!in_array($periodeA, $periodeOptions, true)) $periodeA = $periodeOptions[0] ?? '';
 if (!in_array($periodeB, $periodeOptions, true)) $periodeB = $periodeOptions[count($periodeOptions) - 1] ?? '';
 $rentangPeriodeAwal = min($periodeA, $periodeB);
