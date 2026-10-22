@@ -508,8 +508,10 @@ function formatVolumeOtomatis($volume, $satuan) {
         in_array($satuanLower, ['kg', 'kilogram', 'kilograms'])
         && $volume >= 1000
     ) {
+        $volumeTon = $volume / 1000;
+        $tonDecimals = abs($volumeTon - round($volumeTon)) < 0.000001 ? 0 : 2;
         return [
-            'angka' => format_angka($volume / 1000, 2),
+            'angka' => format_angka($volumeTon, $tonDecimals),
             'satuan' => 'Ton'
         ];
     }
