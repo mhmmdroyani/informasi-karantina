@@ -924,7 +924,7 @@ foreach ($periodeOptions as $periodOption) {
                 <div class="panel-header-canva">
                     <h3>Top Komoditas berdasarkan Nilai <?= $labelKegiatan ?></h3>
                 </div>
-                <div class="panel-body-canva">
+                <div class="panel-body-canva top-commodity-panel-body">
                     <div class="top-bar-items">
                         <?php foreach ($summaryItems as $i => $item):
                             $pct = $totalNilai > 0 ? round(($item['value'] / $totalNilai) * 100, 1) : 0;
