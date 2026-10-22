@@ -15,6 +15,7 @@ $exportStage = 'memuat library Excel';
 
 try {
 require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../includes/period_aggregation.php';
 
 $exportStage = 'menghubungkan database';
 require_once __DIR__ . '/../config/koneksi.php';
@@ -29,28 +30,40 @@ if (!in_array($kategori, ['hewan', 'ikan', 'tumbuhan'], true)) {
     $kategori = 'hewan';
 }
 
-$periode = trim($_GET['periode'] ?? '');
-if (
-    !preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $periode)
-    || !checkdate((int)substr($periode, 5, 2), 1, (int)substr($periode, 0, 4))
-) {
+$legacyPeriod = trim($_GET['periode'] ?? '');
+$periodeA = trim($_GET['periode_a'] ?? $legacyPeriod);
+$periodeB = trim($_GET['periode_b'] ?? $legacyPeriod);
+$validPeriod = static function ($period) {
+    return preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $period)
+        && checkdate((int)substr($period, 5, 2), 1, (int)substr($period, 0, 4));
+};
+if (!$validPeriod($periodeA) || !$validPeriod($periodeB)) {
     http_response_code(400);
-    exit('Pilih periode yang valid sebelum mengunduh data.');
+    exit('Pilih Periode A dan Periode B yang valid sebelum mengunduh data.');
 }
+$rangeStart = min($periodeA, $periodeB);
+$rangeEnd = max($periodeA, $periodeB);
 
 $exportStage = 'mengambil data dari database';
 $stmt = $pdo->prepare(
     'SELECT *
      FROM ekspor_komoditas
-     WHERE jenis_kegiatan = ? AND kategori = ? AND periode = ?
+     WHERE jenis_kegiatan = ? AND kategori = ?
+       AND periode >= ? AND periode <= ?
+       AND periode REGEXP \'^[0-9]{4}-(0[1-9]|1[0-2])$\'
      ORDER BY is_published DESC, nilai_ekspor DESC, frekuensi DESC'
 );
-$stmt->execute([$jenis, $kategori, $periode]);
+$stmt->execute([$jenis, $kategori, $rangeStart, $rangeEnd]);
 $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+if ($rangeStart !== $rangeEnd) {
+    $rows = aggregate_monthly_period_rows($rows);
+}
 
 $labelKegiatan = get_label_kegiatan($jenis);
 $labelKategori = strtoupper($kategori);
-$labelPeriode = format_label_periode_kode($periode) ?: $periode;
+$labelPeriodeA = format_label_periode_kode($rangeStart) ?: $rangeStart;
+$labelPeriodeB = format_label_periode_kode($rangeEnd) ?: $rangeEnd;
+$labelPeriode = $rangeStart === $rangeEnd ? $labelPeriodeA : "{$labelPeriodeA} - {$labelPeriodeB}";
 $columns = [
     'No',
     'Klasifikasi',
@@ -103,7 +116,7 @@ foreach ($rows as $index => $row) {
         (string)($row['daerah_asal'] ?? '-'),
         (string)($row['daerah_tujuan'] ?? '-'),
         (string)($row['negara_tujuan'] ?? '-'),
-        (int)($row['is_published'] ?? 0) === 1 ? 'Published' : 'Draft',
+        (string)($row['publication_status'] ?? ((int)($row['is_published'] ?? 0) === 1 ? 'Published' : 'Draft')),
     ];
 
     foreach ($values as $columnIndex => $value) {
@@ -197,7 +210,7 @@ $filename = sprintf(
     'Rekap_%s_%s_%s.xlsx',
     preg_replace('/[^A-Za-z0-9_-]/', '_', $jenis),
     preg_replace('/[^A-Za-z0-9_-]/', '_', $kategori),
-    $periode
+    $rangeStart === $rangeEnd ? $rangeStart : $rangeStart . '_sd_' . $rangeEnd
 );
 
 header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');

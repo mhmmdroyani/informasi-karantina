@@ -29,7 +29,14 @@ if ($action === 'batch_ids') {
         $stmt->execute($ids);
     }
 
-    header("Location: kelola_data.php?jenis=" . urlencode($jenis) . "&kategori=" . urlencode($kategori) . "&msg=hapus_sukses");
+    $redirectParams = [
+        'jenis' => $jenis,
+        'kategori' => $kategori,
+        'periode_a' => trim($_POST['periode_a'] ?? ''),
+        'periode_b' => trim($_POST['periode_b'] ?? ''),
+        'msg' => 'hapus_sukses',
+    ];
+    header('Location: kelola_data.php?' . http_build_query($redirectParams));
     exit;
 }
 
@@ -44,6 +51,8 @@ if (!in_array($kategori, ['hewan', 'ikan', 'tumbuhan'])) {
 }
 
 $periode = $_POST['periode'] ?? '';
+$periodeA = trim($_POST['periode_a'] ?? $periode);
+$periodeB = trim($_POST['periode_b'] ?? $periode);
 
 if ($action === 'single') {
     $id = (int)($_POST['id'] ?? 0);
@@ -59,9 +68,12 @@ if ($action === 'single') {
     $stmt->execute([$jenis, $kategori]);
 }
 
-$redirect = "kelola_data.php?jenis=" . urlencode($jenis) . "&kategori=" . urlencode($kategori);
-if (!empty($periode) && $action !== 'batch_periode') {
-    $redirect .= "&periode=" . urlencode($periode);
-}
-header("Location: " . $redirect . "&msg=hapus_sukses");
+$redirectParams = [
+    'jenis' => $jenis,
+    'kategori' => $kategori,
+    'periode_a' => $periodeA,
+    'periode_b' => $periodeB,
+    'msg' => 'hapus_sukses',
+];
+header('Location: kelola_data.php?' . http_build_query($redirectParams));
 exit;

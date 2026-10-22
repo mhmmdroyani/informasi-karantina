@@ -95,6 +95,8 @@ try {
         'jenis' => $jenis,
         'kategori' => $kategori,
         'periode' => $periode,
+        'periode_a' => trim($_POST['periode_a'] ?? $periode),
+        'periode_b' => trim($_POST['periode_b'] ?? $periode),
         'msg' => 'sukses',
         'pub' => $publishedCount,
         'filter_mode' => $cal['mode'],
@@ -112,6 +114,13 @@ try {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
-    header("Location: kelola_data.php?jenis=" . urlencode($jenis) . "&kategori=" . urlencode($kategori) . "&error=" . urlencode($e->getMessage()));
+    $redirectParams = [
+        'jenis' => $jenis,
+        'kategori' => $kategori,
+        'periode_a' => trim($_POST['periode_a'] ?? $periode),
+        'periode_b' => trim($_POST['periode_b'] ?? $periode),
+        'error' => $e->getMessage(),
+    ];
+    header('Location: kelola_data.php?' . http_build_query($redirectParams));
     exit;
 }

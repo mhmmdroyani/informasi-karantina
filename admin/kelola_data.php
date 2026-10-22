@@ -2,6 +2,7 @@
 // admin/kelola_data.php
 require_once __DIR__ . '/../config/koneksi.php';
 require_once __DIR__ . '/../config/auth.php';
+require_once __DIR__ . '/../includes/period_aggregation.php';
 require_admin();
 
 $jenis = $_GET['jenis'] ?? 'domestik_masuk';
@@ -14,7 +15,7 @@ if (!in_array($kategori, ['hewan', 'ikan', 'tumbuhan'])) {
     $kategori = 'hewan';
 }
 
-$periodeFilter = trim($_GET['periode'] ?? '');
+$periodeFilter = '';
 
 // Ambil setting saat ini sesuai jenis & kategori
 $stmtSet = $pdo->prepare("SELECT * FROM ekspor_settings WHERE jenis_kegiatan = ? AND kategori = ? LIMIT 1");
@@ -53,6 +54,57 @@ $periodeStmt = $pdo->prepare("SELECT DISTINCT periode FROM ekspor_komoditas WHER
 $periodeStmt->execute([$jenis, $kategori]);
 $periodeOptions = $periodeStmt->fetchAll(PDO::FETCH_COLUMN);
 
+// Backward compatibility: a single `periode` value selects that month for both endpoints.
+$legacyPeriod = trim($_GET['periode'] ?? '');
+$requestedPeriodA = trim($_GET['periode_a'] ?? $legacyPeriod);
+$requestedPeriodB = trim($_GET['periode_b'] ?? $legacyPeriod);
+$validPeriods = array_values(array_filter($periodeOptions, static function ($period) {
+    return is_string($period)
+        && preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $period)
+        && checkdate((int)substr($period, 5, 2), 1, (int)substr($period, 0, 4));
+}));
+$periodSet = array_fill_keys($validPeriods, true);
+$calendarStart = (string)($setting['tanggal_awal'] ?? '');
+$calendarEnd = (string)($setting['tanggal_akhir'] ?? '');
+if (
+    preg_match('/^\d{4}-\d{2}-\d{2}$/', $calendarStart)
+    && preg_match('/^\d{4}-\d{2}-\d{2}$/', $calendarEnd)
+) {
+    $monthStart = substr($calendarStart, 0, 7);
+    $monthEnd = substr($calendarEnd, 0, 7);
+    if (
+        preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $monthStart)
+        && preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $monthEnd)
+        && checkdate((int)substr($monthStart, 5, 2), 1, (int)substr($monthStart, 0, 4))
+        && checkdate((int)substr($monthEnd, 5, 2), 1, (int)substr($monthEnd, 0, 4))
+        && $monthStart <= $monthEnd
+    ) {
+        $month = new DateTimeImmutable($monthStart . '-01');
+        $lastMonth = new DateTimeImmutable($monthEnd . '-01');
+        $monthCount = 0;
+        while ($month <= $lastMonth && $monthCount < 2400) {
+            $periodSet[$month->format('Y-m')] = true;
+            $month = $month->modify('+1 month');
+            $monthCount++;
+        }
+    }
+}
+$validPeriods = array_keys($periodSet);
+sort($validPeriods, SORT_STRING);
+$periodeA = in_array($requestedPeriodA, $validPeriods, true)
+    ? $requestedPeriodA
+    : ($validPeriods[0] ?? '');
+$periodeB = in_array($requestedPeriodB, $validPeriods, true)
+    ? $requestedPeriodB
+    : ($validPeriods[count($validPeriods) - 1] ?? '');
+$periodeFilter = $periodeB;
+$aggregateMode = $periodeA !== '' && $periodeB !== '' && $periodeA !== $periodeB;
+$rangeStart = $periodeA !== '' && $periodeB !== '' ? min($periodeA, $periodeB) : '';
+$rangeEnd = $periodeA !== '' && $periodeB !== '' ? max($periodeA, $periodeB) : '';
+$rangePeriodLabel = $rangeStart === $rangeEnd
+    ? (format_label_periode_kode($rangeStart) ?: $rangeStart)
+    : ((format_label_periode_kode($rangeStart) ?: $rangeStart) . ' - ' . (format_label_periode_kode($rangeEnd) ?: $rangeEnd));
+
 if ($periodeFilter !== '') {
     $stmtPeriodSet = $pdo->prepare("SELECT * FROM ekspor_settings WHERE jenis_kegiatan = ? AND kategori = ? AND periode = ? LIMIT 1");
     $stmtPeriodSet->execute([$jenis, $kategori, $periodeFilter]);
@@ -62,23 +114,32 @@ if ($periodeFilter !== '') {
     }
 }
 
-// Query data sesuai filter kalender
+// Query the selected month or the inclusive period range.
 $sql = "SELECT * FROM ekspor_komoditas WHERE jenis_kegiatan = :jenis AND kategori = :kategori";
 $params = [':jenis' => $jenis, ':kategori' => $kategori];
 
-if ($periodeFilter !== '') {
-    $sql .= " AND periode = :periode";
-    $params[':periode'] = $periodeFilter;
+if ($periodeA !== '' && $periodeB !== '') {
+    $sql .= " AND periode >= :periode_awal AND periode <= :periode_akhir AND periode REGEXP '^[0-9]{4}-(0[1-9]|1[0-2])$'";
+    $params[':periode_awal'] = $rangeStart;
+    $params[':periode_akhir'] = $rangeEnd;
 } else {
     $sql .= " AND 1 = 0";
 }
 
 $urutanKolom = ($setting['urutkan_berdasarkan'] === 'frekuensi') ? 'frekuensi' : 'nilai_ekspor';
-$sql .= " ORDER BY is_published DESC, nilai_ekspor DESC, frekuensi DESC";
+$sql .= " ORDER BY is_published DESC, {$urutanKolom} DESC";
 
 $stmtData = $pdo->prepare($sql);
 $stmtData->execute($params);
 $dataItems = $stmtData->fetchAll();
+
+if ($aggregateMode) {
+    $dataItems = aggregate_monthly_period_rows($dataItems);
+    usort($dataItems, static function ($left, $right) use ($urutanKolom) {
+        return ($right[$urutanKolom] <=> $left[$urutanKolom])
+            ?: strcasecmp($left['nama_komoditas'], $right['nama_komoditas']);
+    });
+}
 
 // Hitung statistik
 $totalItem = count($dataItems);
@@ -119,7 +180,7 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
                 <h1 class="page-title">Kelola Data & Publikasi Board</h1>
             </div>
             <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                <a href="../embed/board.php?jenis=<?= $jenis ?>&kategori=<?= $kategori ?><?= $periodeFilter !== '' ? '&periode=' . urlencode($periodeFilter) : '' ?>" target="_self" class="btn btn-outline-brand">
+                <a href="../embed/board.php?<?= htmlspecialchars(http_build_query(['jenis' => $jenis, 'kategori' => $kategori, 'periode_a' => $periodeA, 'periode_b' => $periodeB]), ENT_QUOTES, 'UTF-8') ?>" target="_self" class="btn btn-outline-brand">
                     <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
                     <span>Preview Board (<?= ucfirst($kategori) ?>)</span>
                 </a>
@@ -137,7 +198,7 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
                     <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                     <span><strong>Tampilan board berhasil diperbarui!</strong> Sebanyak <strong><?= htmlspecialchars($pubCount) ?> data</strong> kini berstatus dipublikasikan.</span>
                 </div>
-                <a href="../embed/board.php?jenis=<?= $jenis ?>&kategori=<?= $kategori ?><?= $periodeFilter !== '' ? '&periode=' . urlencode($periodeFilter) : '' ?>" target="_self" style="font-size: 12px; font-weight: 600; white-space: nowrap;">Lihat Board &rarr;</a>
+                <a href="../embed/board.php?<?= htmlspecialchars(http_build_query(['jenis' => $jenis, 'kategori' => $kategori, 'periode_a' => $periodeA, 'periode_b' => $periodeB]), ENT_QUOTES, 'UTF-8') ?>" target="_self" style="font-size: 12px; font-weight: 600; white-space: nowrap;">Lihat Board &rarr;</a>
             </div>
         <?php elseif ($msg === 'hapus_sukses'): ?>
             <div class="alert alert-warning" style="margin-bottom: 16px;">
@@ -209,6 +270,8 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
             <input type="hidden" name="jenis_kegiatan" value="<?= htmlspecialchars($jenis) ?>">
             <input type="hidden" name="kategori" value="<?= htmlspecialchars($kategori) ?>">
             <input type="hidden" name="periode" value="<?= htmlspecialchars($periodeFilter) ?>">
+            <input type="hidden" name="periode_a" value="<?= htmlspecialchars($periodeA) ?>">
+            <input type="hidden" name="periode_b" value="<?= htmlspecialchars($periodeB) ?>">
             <input type="hidden" name="filter_mode" value="<?= htmlspecialchars($cal['mode']) ?>">
             <input type="hidden" name="thn_awal" value="<?= htmlspecialchars($cal['thn_awal']) ?>">
             <input type="hidden" name="thn_akhir" value="<?= htmlspecialchars($cal['thn_akhir']) ?>">
@@ -219,7 +282,11 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
             <input type="hidden" name="top_n" value="<?= (int)($setting['top_n'] ?? 5) ?>">
             <input type="hidden" name="urutkan_berdasarkan" value="<?= htmlspecialchars(($setting['urutkan_berdasarkan'] ?? '') === 'frekuensi' ? 'frekuensi' : 'nilai_ekspor') ?>">
 
-            <?php if (!empty($dataItems)): ?>
+            <?php if ($aggregateMode): ?>
+                <div class="alert" style="margin-top: 16px; background: var(--brand-soft); border-color: rgba(15, 118, 110, 0.25); color: #0c5c53;">
+                    Data ditampilkan sebagai penjumlahan periode <?= htmlspecialchars($rangePeriodLabel) ?>. Untuk mengubah status publikasi atau menghapus data, pilih bulan yang sama pada Periode A dan Periode B.
+                </div>
+            <?php elseif (!empty($dataItems)): ?>
                 <div class="kelola-data-action-bar">
                     <div class="kelola-data-counts">
                         <span class="badge badge-neutral">Total: <strong><?= $totalItem ?></strong></span>
@@ -245,17 +312,29 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
                  
                 <div style="padding: 14px 18px; background: var(--bg); border-bottom: 1px solid var(--line); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; font-size: 12px;">
                     <div style="display: flex; align-items: center; gap: 8px;">
-                        <button type="button" onclick="toggleAllCheckboxes(true)" class="btn btn-secondary btn-sm">Centang Semua</button>
-                        <button type="button" onclick="toggleAllCheckboxes(false)" class="btn btn-secondary btn-sm">Hapus Semua Centang</button>
+                        <?php if (!$aggregateMode): ?>
+                            <button type="button" onclick="toggleAllCheckboxes(true)" class="btn btn-secondary btn-sm">Centang Semua</button>
+                            <button type="button" onclick="toggleAllCheckboxes(false)" class="btn btn-secondary btn-sm">Hapus Semua Centang</button>
+                        <?php endif; ?>
                     </div>
                     <div class="kelola-data-toolbar-right" style="display: flex; align-items: center; gap: 10px; margin-left: auto; flex-wrap: wrap;">
-                        <div id="periodeFilterWrap" style="display: flex; align-items: center; gap: 6px;">
-                            <label for="periodeFilter" style="font-weight: 600; color: var(--ink-soft);">Periode:</label>
-                            <select id="periodeFilter" class="field-input" onchange="window.location.href = 'kelola_data.php?jenis=<?= urlencode($jenis) ?>&kategori=<?= urlencode($kategori) ?>&periode=' + encodeURIComponent(this.value)" style="width: 230px; padding: 7px 10px; font-size: 12px;">
+                        <div id="periodeAFilterWrap" style="display: flex; align-items: center; gap: 6px;">
+                            <label for="periodeAFilter" style="font-weight: 600; color: var(--ink-soft);">Periode A:</label>
+                            <select id="periodeAFilter" class="field-input" onchange="updatePeriodRange()" style="width: 175px; padding: 7px 10px; font-size: 12px;">
                                 <option value="">Pilih periode</option>
-                                <?php foreach ($periodeOptions as $periodeOption): ?>
+                                <?php foreach ($validPeriods as $periodeOption): ?>
                                     <?php $periodeLabel = format_label_periode_kode($periodeOption) ?: $periodeOption; ?>
-                                    <option value="<?= htmlspecialchars($periodeOption) ?>" <?= $periodeFilter === $periodeOption ? 'selected' : '' ?>><?= htmlspecialchars($periodeLabel) ?></option>
+                                    <option value="<?= htmlspecialchars($periodeOption) ?>" <?= $periodeA === $periodeOption ? 'selected' : '' ?>><?= htmlspecialchars($periodeLabel) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div id="periodeBFilterWrap" style="display: flex; align-items: center; gap: 6px;">
+                            <label for="periodeBFilter" style="font-weight: 600; color: var(--ink-soft);">Periode B:</label>
+                            <select id="periodeBFilter" class="field-input" onchange="updatePeriodRange()" style="width: 175px; padding: 7px 10px; font-size: 12px;">
+                                <option value="">Pilih periode</option>
+                                <?php foreach ($validPeriods as $periodeOption): ?>
+                                    <?php $periodeLabel = format_label_periode_kode($periodeOption) ?: $periodeOption; ?>
+                                    <option value="<?= htmlspecialchars($periodeOption) ?>" <?= $periodeB === $periodeOption ? 'selected' : '' ?>><?= htmlspecialchars($periodeLabel) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -263,8 +342,8 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
                             <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v14M5 12h14"></path></svg>
                             <span>Tambah Data</span>
                         </a>
-                        <?php if ($periodeFilter !== ''): ?>
-                            <a href="export_kelola_data.php?<?= htmlspecialchars(http_build_query(['jenis' => $jenis, 'kategori' => $kategori, 'periode' => $periodeFilter]), ENT_QUOTES, 'UTF-8') ?>" class="btn btn-outline-brand btn-sm">
+                        <?php if ($periodeA !== '' && $periodeB !== ''): ?>
+                            <a href="export_kelola_data.php?<?= htmlspecialchars(http_build_query(['jenis' => $jenis, 'kategori' => $kategori, 'periode_a' => $periodeA, 'periode_b' => $periodeB]), ENT_QUOTES, 'UTF-8') ?>" class="btn btn-outline-brand btn-sm">
                                 <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v12m0 0 4-4m-4 4-4-4M5 17v3h14v-3"></path></svg>
                                 <span>Download Excel</span>
                             </a>
@@ -278,7 +357,9 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
                         <thead>
                             <tr>
                                 <th style="width: 40px; text-align: center;">
-                                    <input type="checkbox" id="checkAllHead" onchange="toggleAllCheckboxes(this.checked)">
+                                    <?php if (!$aggregateMode): ?>
+                                        <input type="checkbox" id="checkAllHead" onchange="toggleAllCheckboxes(this.checked)">
+                                    <?php endif; ?>
                                 </th>
                                 <th>Klasifikasi</th>
                                 <th>Komoditas</th>
@@ -307,8 +388,10 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
                                 <?php foreach ($dataItems as $idx => $row): ?>
                                     <tr class="<?= $row['is_published'] ? 'is-published' : '' ?>">
                                         <td style="text-align: center;">
-                                            <input type="hidden" name="all_ids[]" value="<?= $row['id'] ?>">
-                                            <input type="checkbox" name="published_ids[]" value="<?= $row['id'] ?>" <?= $row['is_published'] ? 'checked' : '' ?> class="item-checkbox">
+                                            <?php if (!$aggregateMode): ?>
+                                                <input type="hidden" name="all_ids[]" value="<?= $row['id'] ?>">
+                                                <input type="checkbox" name="published_ids[]" value="<?= $row['id'] ?>" <?= $row['is_published'] ? 'checked' : '' ?> class="item-checkbox">
+                                            <?php endif; ?>
                                         </td>
                                         <td><?= htmlspecialchars($row['klasifikasi'] ?? '-') ?></td>
                                         <td>
@@ -318,8 +401,8 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
                                             <?php endif; ?>
                                         </td>
                                         <td style="white-space: nowrap;">
-                                            <span class="badge badge-neutral"><?= htmlspecialchars(format_label_periode_kode($row['periode']) ?: $row['periode']) ?></span>
-                                            <?php if (!empty($row['tanggal_mulai']) && !empty($row['tanggal_selesai'])): ?>
+                                            <span class="badge badge-neutral"><?= htmlspecialchars($aggregateMode ? $rangePeriodLabel : (format_label_periode_kode($row['periode']) ?: $row['periode'])) ?></span>
+                                            <?php if (!$aggregateMode && !empty($row['tanggal_mulai']) && !empty($row['tanggal_selesai'])): ?>
                                                 <div style="font-size: 10px; color: var(--ink-muted); margin-top: 3px;"><?= date('d/m/Y', strtotime($row['tanggal_mulai'])) ?> s/d <?= date('d/m/Y', strtotime($row['tanggal_selesai'])) ?></div>
                                             <?php endif; ?>
                                         </td>
@@ -337,13 +420,16 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
                                             <?= htmlspecialchars($row['negara_tujuan'] ?? '-') ?>
                                         </td>
                                         <td style="text-align: center; white-space: nowrap;">
-                                            <?php if ($row['is_published']): ?>
+                                            <?php if ($aggregateMode && $row['publication_status'] === 'Campuran'): ?>
+                                                <span class="badge badge-neutral" style="background: #fff4d6; color: #795400;">Campuran</span>
+                                            <?php elseif ($row['is_published']): ?>
                                                 <span class="badge badge-brand">Published</span>
                                             <?php else: ?>
                                                 <span class="badge badge-neutral">Draft</span>
                                             <?php endif; ?>
                                         </td>
                                         <td style="text-align: center; white-space: nowrap;">
+                                            <?php if (!$aggregateMode): ?>
                                             <a href="edit_data.php?id=<?= $row['id'] ?>"
                                                 style="color: var(--brand); display: inline-flex; padding: 4px;" title="Edit">
                                                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
@@ -355,10 +441,15 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
                                                 <input type="hidden" name="jenis" value="<?= htmlspecialchars($jenis) ?>">
                                                 <input type="hidden" name="kategori" value="<?= htmlspecialchars($kategori) ?>">
                                                 <input type="hidden" name="periode" value="<?= htmlspecialchars($row['periode'] ?? '') ?>">
+                                                <input type="hidden" name="periode_a" value="<?= htmlspecialchars($periodeA) ?>">
+                                                <input type="hidden" name="periode_b" value="<?= htmlspecialchars($periodeB) ?>">
                                                 <button type="submit" style="color: var(--danger); background: none; border: 0; display: inline-flex; padding: 4px; cursor: pointer;" title="Hapus">
                                                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                                                 </button>
                                             </form>
+                                            <?php else: ?>
+                                                <span style="color: var(--ink-muted);">-</span>
+                                            <?php endif; ?>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -380,11 +471,23 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
         if (head) head.checked = state;
     }
 
+    function updatePeriodRange() {
+        const periodeA = document.getElementById('periodeAFilter').value;
+        const periodeB = document.getElementById('periodeBFilter').value;
+        const params = new URLSearchParams({
+            jenis: <?= json_encode($jenis) ?>,
+            kategori: <?= json_encode($kategori) ?>,
+            periode_a: periodeA,
+            periode_b: periodeB
+        });
+        window.location.href = 'kelola_data.php?' + params.toString();
+    }
+
     const kelolaDataActions = document.getElementById('kelolaDataActions');
     const kelolaDataToolbar = document.querySelector('.kelola-data-toolbar-right');
-    const periodeFilterWrap = document.getElementById('periodeFilterWrap');
-    if (kelolaDataActions && kelolaDataToolbar && periodeFilterWrap) {
-        kelolaDataToolbar.insertBefore(kelolaDataActions, periodeFilterWrap.nextSibling);
+    const periodeBFilterWrap = document.getElementById('periodeBFilterWrap');
+    if (kelolaDataActions && kelolaDataToolbar && periodeBFilterWrap) {
+        kelolaDataToolbar.insertBefore(kelolaDataActions, periodeBFilterWrap.nextSibling);
     }
 
     </script>
