@@ -987,8 +987,22 @@ foreach ($periodeOptions as $periodOption) {
         const destinationLabel = <?= json_encode($labelArahUpper, JSON_UNESCAPED_UNICODE) ?>;
         const destinationList = document.getElementById('destinationList');
         const destinationPanelTitle = document.getElementById('destinationPanelTitle');
+        const defaultDestinationTitle = destinationPanelTitle.textContent;
+        const defaultDestinationRows = Array.from(destinationList.children).map(function(item) {
+            return item.cloneNode(true);
+        });
 
         function showCommodityDestinations(row) {
+            if (row.getAttribute('aria-pressed') === 'true') {
+                destinationPanelTitle.textContent = defaultDestinationTitle;
+                destinationList.replaceChildren(...defaultDestinationRows.map(function(item) {
+                    return item.cloneNode(true);
+                }));
+                row.classList.remove('is-selected');
+                row.setAttribute('aria-pressed', 'false');
+                return;
+            }
+
             const selectionKey = row.dataset.selectionKey;
             const locations = locationsByCommodity[selectionKey] || [];
             destinationPanelTitle.textContent = destinationLabel + ' — ' + row.querySelector('.tbr-label').textContent;
