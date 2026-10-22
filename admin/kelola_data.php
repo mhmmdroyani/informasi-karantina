@@ -310,8 +310,8 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
             <div class="card" style="margin-top: 20px; overflow: hidden;">
                 <!-- Toolbar Tabel -->
                  
-                <div style="padding: 14px 18px; background: var(--bg); border-bottom: 1px solid var(--line); display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 10px; font-size: 12px;">
-                    <div class="kelola-data-toolbar-right" style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <div style="padding: 14px 18px; background: var(--bg); border-bottom: 1px solid var(--line); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; font-size: 12px;">
+                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                         <div id="periodeAFilterWrap" style="display: flex; align-items: center; gap: 6px;">
                             <label for="periodeAFilter" style="font-weight: 600; color: var(--ink-soft);">Periode A:</label>
                             <select id="periodeAFilter" class="field-input" onchange="updatePeriodRange('a')" style="width: 175px; padding: 7px 10px; font-size: 12px;">
@@ -332,6 +332,8 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
                                 <?php endforeach; ?>
                             </select>
                         </div>
+                    </div>
+                    <div class="kelola-data-toolbar-right" style="display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; margin-left: auto;">
                         <a href="tambah_data.php?jenis=<?= urlencode($jenis) ?>&kategori=<?= urlencode($kategori) ?>" class="btn btn-primary btn-sm">
                             <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v14M5 12h14"></path></svg>
                             <span>Tambah Data</span>
@@ -483,9 +485,8 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
 
     const kelolaDataActions = document.getElementById('kelolaDataActions');
     const kelolaDataToolbar = document.querySelector('.kelola-data-toolbar-right');
-    const periodeBFilterWrap = document.getElementById('periodeBFilterWrap');
-    if (kelolaDataActions && kelolaDataToolbar && periodeBFilterWrap) {
-        kelolaDataToolbar.insertBefore(kelolaDataActions, periodeBFilterWrap.nextSibling);
+    if (kelolaDataActions && kelolaDataToolbar) {
+        kelolaDataToolbar.insertBefore(kelolaDataActions, kelolaDataToolbar.firstChild);
     }
 
     </script>
