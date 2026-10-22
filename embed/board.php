@@ -388,6 +388,7 @@ $jumlahWilayah = count($daftarDest);
 // Subteks Wilayah
 $countryFlagCodes = [
     'china' => 'cn', 'tiongkok' => 'cn', 'hong kong' => 'hk', 'taiwan' => 'tw',
+    'sri lanka' => 'lk', 'pakistan' => 'pk', 'kazakhstan' => 'kz',
     'singapura' => 'sg', 'singapore' => 'sg', 'jepang' => 'jp', 'japan' => 'jp',
     'malaysia' => 'my', 'vietnam' => 'vn', 'thailand' => 'th', 'india' => 'in',
     'korea selatan' => 'kr', 'south korea' => 'kr', 'filipina' => 'ph',
