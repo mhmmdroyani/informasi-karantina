@@ -336,7 +336,7 @@ body {
 
 .kpi-volume-row small {
   min-width: 0;
-  color: var(--ink-soft);
+  color: var(--ink);
   font-size: 12px;
   overflow-wrap: anywhere;
 }
