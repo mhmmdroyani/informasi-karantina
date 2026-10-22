@@ -866,7 +866,7 @@ foreach ($periodeOptions as $periodOption) {
                 <div class="panel-header-canva">
                     <h3>Kontribusi Nilai <?= $labelKegiatan ?> berdasarkan Komoditas</h3>
                 </div>
-                <div class="panel-body-canva">
+                <div class="panel-body-canva donut-panel-body">
                     <div class="donut-layout">
                         <div class="donut-chart-box">
                             <canvas id="donutChartMaster"></canvas>

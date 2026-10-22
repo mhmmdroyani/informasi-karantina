@@ -392,6 +392,14 @@ body {
   flex: 1;
 }
 
+.donut-panel-body {
+  justify-content: flex-start;
+}
+
+.donut-panel-body .donut-layout {
+  flex: 0 0 auto;
+}
+
 .donut-chart-box {
   position: relative;
   width: 140px;
