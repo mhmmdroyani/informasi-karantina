@@ -483,6 +483,7 @@ $periodeAUrls = [];
 foreach ($periodeOptions as $periodOption) {
     $params = $boardFilterParams;
     $params['periode_a'] = $periodOption;
+    $params['periode_b'] = $periodOption;
     $periodeAUrls[$periodOption] = '?' . http_build_query($params);
 }
 $periodeBUrls = [];
