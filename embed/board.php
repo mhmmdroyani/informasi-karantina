@@ -284,7 +284,6 @@ $data = $allData;
 if ($topN > 0 && count($data) > $topN) {
     $data = array_slice($data, 0, $topN);
 }
-
 // 3. Hitung Metrik dari seluruh data yang dipilih, bukan hanya baris yang ditampilkan
 $totalNilai = (float)array_sum(array_column($allData, 'nilai_ekspor'));
 $totalFrekuensi = (int)array_sum(array_column($allData, 'frekuensi'));
@@ -431,6 +430,24 @@ if (!empty($data)) {
 
 // Chart Colors
 $colors = ['#0f766e', '#2563eb', '#b45309', '#64748b', '#7c3aed'];
+$summaryItems = [];
+foreach ($data as $idx => $row) {
+    $summaryItems[] = [
+        'name' => ($kategori === 'ikan' && !empty($row['nama_komoditas_lokal']))
+            ? $row['nama_komoditas_lokal']
+            : $row['nama_komoditas'],
+        'value' => (float)$row['nilai_ekspor'],
+        'color' => $colors[$idx % count($colors)],
+    ];
+}
+$hiddenItems = $topN > 0 ? array_slice($allData, $topN) : [];
+if ($hiddenItems !== []) {
+    $summaryItems[] = [
+        'name' => 'Lainnya',
+        'value' => (float)array_sum(array_column($hiddenItems, 'nilai_ekspor')),
+        'color' => '#94a3b8',
+    ];
+}
 
 
 function formatVolumeOtomatis($volume, $satuan) {
@@ -816,16 +833,15 @@ foreach ($periodeOptions as $periodOption) {
                         </div>
 
                         <div class="donut-legend-list">
-                            <?php foreach (array_slice($data, 0, $topN > 0 ? $topN : count($data)) as $idx => $row): 
-                                $comName = ($kategori === 'ikan' && !empty($row['nama_komoditas_lokal'])) ? $row['nama_komoditas_lokal'] : $row['nama_komoditas'];
-                                $pct = $totalNilai > 0 ? round(($row['nilai_ekspor'] / $totalNilai) * 100, 1) : 0;
+                            <?php foreach ($summaryItems as $item):
+                                $pct = $totalNilai > 0 ? round(($item['value'] / $totalNilai) * 100, 1) : 0;
                             ?>
                                 <div class="legend-item-canva">
-                                    <span class="legend-dot-canva" style="background-color: <?= $colors[$idx % count($colors)] ?>;"></span>
+                                    <span class="legend-dot-canva" style="background-color: <?= htmlspecialchars($item['color'], ENT_QUOTES, 'UTF-8') ?>;"></span>
                                     <div class="legend-item-info">
-                                        <div class="legend-com-name"><?= htmlspecialchars($comName) ?></div>
+                                        <div class="legend-com-name"><?= htmlspecialchars($item['name']) ?></div>
                                         <div class="legend-row">
-                                            <span class="legend-val-badge"><?= format_rupiah_singkat($row['nilai_ekspor']) ?></span>
+                                            <span class="legend-val-badge"><?= format_rupiah_singkat($item['value']) ?></span>
                                             <span class="legend-pct"><?= $pct ?>%</span>
                                         </div>
                                     </div>
@@ -925,15 +941,18 @@ foreach ($periodeOptions as $periodOption) {
         }, $data)) ?>;
         const rawValues = <?= json_encode(array_map('floatval', array_column($data, 'nilai_ekspor'))) ?>;
         const colors = <?= json_encode($colors) ?>;
+        const summaryLabels = <?= json_encode(array_column($summaryItems, 'name'), JSON_UNESCAPED_UNICODE) ?>;
+        const summaryValues = <?= json_encode(array_map('floatval', array_column($summaryItems, 'value'))) ?>;
+        const summaryColors = <?= json_encode(array_column($summaryItems, 'color')) ?>;
 
         // 1. Donut Chart
         new Chart(document.getElementById('donutChartMaster'), {
             type: 'doughnut',
             data: {
-                labels: rawLabels,
+                labels: summaryLabels,
                 datasets: [{
-                    data: rawValues,
-                    backgroundColor: colors,
+                    data: summaryValues,
+                    backgroundColor: summaryColors,
                     borderWidth: 2,
                     borderColor: '#ffffff',
                     hoverOffset: 4
