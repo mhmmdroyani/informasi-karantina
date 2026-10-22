@@ -512,9 +512,10 @@ body {
 
 /* ----------------- Panel 2: Top komoditas ----------------- */
 .bar-chart-container-canva {
-  flex: 1;
+  flex: 0 0 230px;
   position: relative;
-  min-height: 210px;
+  height: 230px;
+  min-height: 230px;
   width: 100%;
   margin-top: 18px;
 }
@@ -1282,6 +1283,8 @@ body {
   }
 
   .bar-chart-container-canva {
+    flex-basis: 230px;
+    height: 230px;
     min-height: 230px;
   }
 }
