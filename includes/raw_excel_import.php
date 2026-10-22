@@ -26,27 +26,29 @@ function raw_excel_group_key($commodity, $unit)
     return $normalizedCommodity . "\0" . $normalizedUnit;
 }
 
-function raw_excel_detect_columns($row)
+function raw_excel_detect_columns($row, $jenis = '')
 {
     $headerColumns = [];
     foreach ($row as $columnIndex => $value) {
         $headerColumns[normalize_raw_excel_header((string)$value)] = $columnIndex;
     }
 
-    $required = [
-        'klasifikasi' => 'klasifikasi',
-        'komoditas' => 'komoditas',
-        'volp1' => 'volume',
-        'satuanlain' => 'satuan',
-        'hargabarangrp' => 'nilai',
-        'daerahasal' => 'daerah_asal',
-        'daerahtujuan' => 'daerah_tujuan',
-        'negaratujuan' => 'negara_tujuan',
-    ];
     $columns = [];
-    foreach ($headerColumns as $key => $columnIndex) {
-        if (isset($required[$key])) {
-            $columns[$required[$key]] = $columnIndex;
+    foreach ([
+        'klasifikasi' => ['klasifikasi'],
+        'komoditas' => ['komoditas'],
+        'volume' => ['volp1'],
+        'satuan' => ['satuanlain'],
+        'nilai' => ['hargabarangrp'],
+        'daerah_asal' => ['daerahasal'],
+        'daerah_tujuan' => ['daerahtujuan'],
+        'negara_tujuan' => $jenis === 'impor' ? ['negaraasal', 'negaratujuan'] : ['negaratujuan', 'negaraasal'],
+    ] as $field => $aliases) {
+        foreach ($aliases as $alias) {
+            if (array_key_exists($alias, $headerColumns)) {
+                $columns[$field] = $headerColumns[$alias];
+                break;
+            }
         }
     }
 
@@ -68,7 +70,7 @@ function ensure_monthly_raw_columns($pdo)
     }
 }
 
-function aggregate_raw_excel_rows($rows)
+function aggregate_raw_excel_rows($rows, $jenis = '')
 {
     $headerRow = null;
     $columns = [];
@@ -81,7 +83,7 @@ function aggregate_raw_excel_rows($rows)
         }
     }
     if ($headerRow === null) {
-        throw new RuntimeException('Header Excel tidak cocok. Pastikan kolom Klasifikasi, Komoditas, Vol P1, Satuan Lain, Harga Barang (Rp), Daerah Asal, Daerah Tujuan, Negara Tujuan ada di Excel.');
+        throw new RuntimeException('Header Excel tidak cocok. Pastikan kolom Klasifikasi, Komoditas, Vol P1, Satuan Lain, Harga Barang (Rp), Daerah Asal, Daerah Tujuan, dan Negara Asal/Negara Tujuan ada di Excel.');
     }
 
     $groups = [];
@@ -143,7 +145,7 @@ function aggregate_raw_excel_rows($rows)
     return $result;
 }
 
-function aggregate_raw_excel_sheet($sheet)
+function aggregate_raw_excel_sheet($sheet, $jenis = '')
 {
     $headerRow = null;
     $columns = [];
@@ -163,7 +165,7 @@ function aggregate_raw_excel_sheet($sheet)
                 $headerValues[$columnIndex] = $value;
             }
 
-            $candidate = raw_excel_detect_columns($headerValues);
+            $candidate = raw_excel_detect_columns($headerValues, $jenis);
             if ($candidate !== null) {
                 $headerRow = $rowIndex;
                 $columns = $candidate;
@@ -180,7 +182,7 @@ function aggregate_raw_excel_sheet($sheet)
         $rows[] = $rowValues;
     }
 
-    return aggregate_raw_excel_rows($rows);
+    return aggregate_raw_excel_rows($rows, $jenis);
 }
 
 function merge_raw_excel_entries($existingEntries, $newEntries)
@@ -320,7 +322,7 @@ function handle_raw_excel_upload($pdo, $kategori, array $databaseConfig)
                 $reader->setReadEmptyCells(false);
                 $reader->setLoadSheetsOnly([$sheetNameToLoad]);
                 $spreadsheet = $reader->load($filePath);
-                $entries = aggregate_raw_excel_sheet($spreadsheet->getSheet(0));
+                $entries = aggregate_raw_excel_sheet($spreadsheet->getSheet(0), $jenis);
                 if (empty($entries)) {
                     throw new RuntimeException('Tidak ditemukan baris data komoditas pada Excel.');
                 }
