@@ -742,7 +742,7 @@ foreach ($periodeOptions as $periodOption) {
                             <?php $volumeSekunderTampilan = formatVolumeOtomatis($volume, $unit); ?>
                             <span class="kpi-volume-row">
                                 <strong><?= $volumeSekunderTampilan['angka'] ?></strong>
-                                <small><?= htmlspecialchars($volumeSekunderTampilan['satuan']) ?></small>
+                                <small><?= htmlspecialchars(ucwords(strtolower($volumeSekunderTampilan['satuan']), " \t\r\n\f\v/-")) ?></small>
                             </span>
                         <?php endforeach; ?>
                     </div>
