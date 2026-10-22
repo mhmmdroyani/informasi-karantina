@@ -288,6 +288,7 @@ if ($topN > 0 && count($data) > $topN) {
 // 3. Hitung Metrik dari seluruh data yang dipilih, bukan hanya baris yang ditampilkan
 $totalNilai = (float)array_sum(array_column($allData, 'nilai_ekspor'));
 $totalFrekuensi = (int)array_sum(array_column($allData, 'frekuensi'));
+$summaryTotal = $urutan === 'frekuensi' ? $totalFrekuensi : $totalNilai;
 $volumeByUnit = [];
 foreach ($allData as $row) {
     $unit = trim((string)($row['satuan'] ?? '')) ?: 'Kilogram';
@@ -446,6 +447,7 @@ $labelArah = get_label_arah($jenis);
 $labelArahUpper = $labelArah;
 $labelSatuanWilayah = get_label_wilayah($jenis);
 $labelDokumen = get_label_sertifikat($jenis, $kategori);
+$summaryMetricLabel = $urutan === 'frekuensi' ? 'Frekuensi' : 'Nilai ' . $labelKegiatan;
 
 // Top Commodity Name
 $topKomoditasName = 'Komoditas';
@@ -466,7 +468,7 @@ foreach ($data as $idx => $row) {
         'name' => ($kategori === 'ikan' && !empty($row['nama_komoditas_lokal']))
             ? $row['nama_komoditas_lokal']
             : $row['nama_komoditas'],
-        'value' => (float)$row['nilai_ekspor'],
+        'value' => (float)$row[$urutan],
         'color' => $colors[$idx % count($colors)],
     ];
 }
@@ -490,7 +492,7 @@ if ($hiddenItems !== []) {
     $summaryItems[] = [
         'key' => 'other',
         'name' => 'Lainnya',
-        'value' => (float)array_sum(array_column($hiddenItems, 'nilai_ekspor')),
+        'value' => (float)array_sum(array_column($hiddenItems, $urutan)),
         'color' => '#94a3b8',
     ];
 }
@@ -862,10 +864,10 @@ foreach ($periodeOptions as $periodOption) {
         <!-- Panel Ringkasan -->
         <div class="panels-row-canva">
             
-            <!-- Panel 1: Kontribusi Nilai -->
+            <!-- Panel 1: Kontribusi berdasarkan metrik terpilih -->
             <div class="panel-canva">
                 <div class="panel-header-canva">
-                    <h3>Kontribusi Nilai <?= $labelKegiatan ?> berdasarkan Komoditas</h3>
+                    <h3>Kontribusi <?= htmlspecialchars($summaryMetricLabel) ?> berdasarkan Komoditas</h3>
                 </div>
                 <div class="panel-body-canva donut-panel-body">
                     <div class="donut-layout">
@@ -873,21 +875,26 @@ foreach ($periodeOptions as $periodOption) {
                             <canvas id="donutChartMaster"></canvas>
                             <div class="donut-center-overlay">
                                 <span class="dco-label">Total</span>
-                                <span class="dco-val"><?= $kpiNilai['angka'] ?></span>
-                                <span class="dco-unit"><?= $kpiNilai['satuan'] ?></span>
+                                <?php if ($urutan === 'frekuensi'): ?>
+                                    <span class="dco-val"><?= format_angka($summaryTotal) ?></span>
+                                    <span class="dco-unit">Kali</span>
+                                <?php else: ?>
+                                    <span class="dco-val"><?= $kpiNilai['angka'] ?></span>
+                                    <span class="dco-unit"><?= $kpiNilai['satuan'] ?></span>
+                                <?php endif; ?>
                             </div>
                         </div>
 
                         <div class="donut-legend-list">
                             <?php foreach ($summaryItems as $item):
-                                $pct = $totalNilai > 0 ? round(($item['value'] / $totalNilai) * 100, 1) : 0;
+                                $pct = $summaryTotal > 0 ? round(($item['value'] / $summaryTotal) * 100, 1) : 0;
                             ?>
                                 <div class="legend-item-canva">
                                     <span class="legend-dot-canva" style="background-color: <?= htmlspecialchars($item['color'], ENT_QUOTES, 'UTF-8') ?>;"></span>
                                     <div class="legend-item-info">
                                         <div class="legend-com-name"><?= htmlspecialchars($item['name']) ?></div>
                                         <div class="legend-row">
-                                            <span class="legend-val-badge"><?= format_rupiah_singkat($item['value']) ?></span>
+                                            <span class="legend-val-badge"><?= $urutan === 'frekuensi' ? format_angka($item['value']) . ' kali' : format_rupiah_singkat($item['value']) ?></span>
                                             <span class="legend-pct"><?= $pct ?>%</span>
                                         </div>
                                     </div>
@@ -923,17 +930,17 @@ foreach ($periodeOptions as $periodOption) {
             <!-- Panel 2: Top Komoditas -->
             <div class="panel-canva">
                 <div class="panel-header-canva">
-                    <h3>Top Komoditas berdasarkan Nilai <?= $labelKegiatan ?></h3>
+                    <h3>Top Komoditas berdasarkan <?= htmlspecialchars($summaryMetricLabel) ?></h3>
                 </div>
                 <div class="panel-body-canva top-commodity-panel-body">
                     <div class="top-bar-items">
                         <?php foreach ($summaryItems as $i => $item):
-                            $pct = $totalNilai > 0 ? round(($item['value'] / $totalNilai) * 100, 1) : 0;
+                            $pct = $summaryTotal > 0 ? round(($item['value'] / $summaryTotal) * 100, 1) : 0;
                         ?>
                             <div class="top-bar-row" role="button" tabindex="0" aria-pressed="false" data-selection-key="<?= htmlspecialchars($item['key'], ENT_QUOTES, 'UTF-8') ?>" aria-label="Tampilkan <?= htmlspecialchars($labelArahUpper . ' untuk ' . $item['name'], ENT_QUOTES, 'UTF-8') ?>">
                                 <span class="tbr-badge"><?= $i + 1 ?></span>
                                 <span class="tbr-label"><?= htmlspecialchars($item['name']) ?></span>
-                                <span class="tbr-val"><?= format_rupiah_singkat($item['value']) ?></span>
+                                <span class="tbr-val"><?= $urutan === 'frekuensi' ? format_angka($item['value']) . ' kali' : format_rupiah_singkat($item['value']) ?></span>
                                 <span class="tbr-pct"><?= $pct ?>%</span>
                             </div>
                         <?php endforeach; ?>
@@ -984,6 +991,7 @@ foreach ($periodeOptions as $periodOption) {
         const summaryLabels = <?= json_encode(array_column($summaryItems, 'name'), JSON_UNESCAPED_UNICODE) ?>;
         const summaryValues = <?= json_encode(array_map('floatval', array_column($summaryItems, 'value'))) ?>;
         const summaryColors = <?= json_encode(array_column($summaryItems, 'color')) ?>;
+        const summaryUsesFrequency = <?= json_encode($urutan === 'frekuensi') ?>;
         const locationsByCommodity = <?= json_encode($locationsByCommodity, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
         const destinationLabel = <?= json_encode($labelArahUpper, JSON_UNESCAPED_UNICODE) ?>;
         const destinationList = document.getElementById('destinationList');
@@ -1077,7 +1085,9 @@ foreach ($periodeOptions as $periodOption) {
                     tooltip: {
                         callbacks: {
                             label: function(ctx) {
-                                return ' ' + ctx.label + ': Rp ' + Number(ctx.raw || 0).toLocaleString('id-ID');
+                            return summaryUsesFrequency
+                                ? ' ' + ctx.label + ': ' + Number(ctx.raw || 0).toLocaleString('id-ID') + ' kali'
+                                : ' ' + ctx.label + ': Rp ' + Number(ctx.raw || 0).toLocaleString('id-ID');
                             }
                         }
                     }
@@ -1092,8 +1102,8 @@ foreach ($periodeOptions as $periodOption) {
             data: {
                 labels: barLabels,
                 datasets: [{
-                    label: 'Nilai',
-                    data: summaryValues.map(v => v / 1e9),
+                    label: summaryUsesFrequency ? 'Frekuensi' : 'Nilai',
+                    data: summaryUsesFrequency ? summaryValues : summaryValues.map(v => v / 1e9),
                     backgroundColor: '#1d4ed8',
                     borderRadius: 4,
                     barPercentage: 0.6
@@ -1108,7 +1118,9 @@ foreach ($periodeOptions as $periodOption) {
                     tooltip: {
                         callbacks: {
                             label: function(ctx) {
-                                return ' Nilai: Rp ' + Number(ctx.raw).toFixed(2) + ' Miliar';
+                                return summaryUsesFrequency
+                                    ? ' Frekuensi: ' + Number(ctx.raw).toLocaleString('id-ID') + ' kali'
+                                    : ' Nilai: Rp ' + Number(ctx.raw).toFixed(2) + ' Miliar';
                             }
                         }
                     }
@@ -1117,7 +1129,11 @@ foreach ($periodeOptions as $periodOption) {
                     x: {
                         ticks: {
                             font: { size: 9 },
-                            callback: function(v) { return v + ' M'; }
+                            callback: function(v) {
+                                return summaryUsesFrequency
+                                    ? Number(v).toLocaleString('id-ID')
+                                    : v + ' M';
+                            }
                         },
                         grid: { color: '#f1f5f9' }
                     },
