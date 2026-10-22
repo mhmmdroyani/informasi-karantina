@@ -531,6 +531,20 @@ body {
   align-items: center;
   gap: 10px;
   font-size: 12px;
+  cursor: pointer;
+  border-radius: 6px;
+  padding: 2px 4px;
+  margin: -2px -4px;
+}
+
+.top-bar-row:hover,
+.top-bar-row.is-selected {
+  background: #f1f5f9;
+}
+
+.top-bar-row:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
 }
 
 .tbr-badge {

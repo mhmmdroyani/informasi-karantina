@@ -241,6 +241,7 @@ if (!$comparisonPage) {
         $groupKey = $commodityKey . "\0" . strtolower(preg_replace('/\s+/', ' ', $unit));
         if (!isset($groupedData[$groupKey])) {
             $row['satuan'] = $unit;
+            $row['_selection_key'] = hash('sha256', $groupKey);
             $row['frekuensi'] = (int)$row['frekuensi'];
             $row['volume'] = $normalizedVolume['volume'];
             $row['nilai_ekspor'] = (float)$row['nilai_ekspor'];
@@ -353,7 +354,12 @@ $normalizeCountryName = function ($name) use ($countryAliases) {
 
 $uniqueDest = [];
 $destCounts = [];
+$destCountsBySelection = [];
 foreach ($allMonthlyData as $r) {
+    $normalizedVolume = normalize_compatible_volume_unit($r['volume'], $r['satuan'] ?? '');
+    $commodityKey = strtolower(preg_replace('/\s+/', ' ', trim((string)$r['nama_komoditas'])));
+    $unitKey = strtolower(preg_replace('/\s+/', ' ', $normalizedVolume['unit']));
+    $selectionKey = hash('sha256', $commodityKey . "\0" . $unitKey);
     if (!empty($r[$fieldTujuan])) {
         $parts = preg_split('/\s*(?:,|;|\/|\|)\s*/', (string)$r[$fieldTujuan]);
         $validParts = array_values(array_filter($parts, fn($x) => trim((string)$x) !== ''));
@@ -371,6 +377,8 @@ foreach ($allMonthlyData as $r) {
         }
         foreach ($rowDestinations as $destinationKey => $_) {
             $destCounts[$destinationKey] = ($destCounts[$destinationKey] ?? 0) + 1;
+            $destCountsBySelection[$selectionKey][$destinationKey] =
+                ($destCountsBySelection[$selectionKey][$destinationKey] ?? 0) + 1;
         }
     }
 }
@@ -402,6 +410,26 @@ $countryFlagCodes = [
     'ecuador' => 'ec', 'panama' => 'pa',
     'new caledonia' => 'nc', 'papua nugini' => 'pg', 'papua new guinea' => 'pg'
 ];
+$locationsByCommodity = [];
+foreach ($destCountsBySelection as $selectionKey => $locations) {
+    arsort($locations);
+    $locationsByCommodity[$selectionKey] = array_map(
+        static function ($name, $count) use ($isDomestik, $countryFlagCodes) {
+            $flag = null;
+            if (!$isDomestik) {
+                foreach ($countryFlagCodes as $countryName => $countryCode) {
+                    if (strtolower(trim($name)) === $countryName || strpos(strtolower(trim($name)), $countryName) !== false) {
+                        $flag = $countryCode;
+                        break;
+                    }
+                }
+            }
+            return ['name' => $name, 'count' => $count, 'flag' => $flag];
+        },
+        array_keys($locations),
+        array_values($locations)
+    );
+}
 if ($isDomestik) {
     $subWilayah = max(1, count($daftarDest)) . ' Provinsi/Area';
 } else {
@@ -433,6 +461,7 @@ $colors = ['#0f766e', '#2563eb', '#b45309', '#64748b', '#7c3aed'];
 $summaryItems = [];
 foreach ($data as $idx => $row) {
     $summaryItems[] = [
+        'key' => $row['_selection_key'] ?? '',
         'name' => ($kategori === 'ikan' && !empty($row['nama_komoditas_lokal']))
             ? $row['nama_komoditas_lokal']
             : $row['nama_komoditas'],
@@ -442,7 +471,23 @@ foreach ($data as $idx => $row) {
 }
 $hiddenItems = $topN > 0 ? array_slice($allData, $topN) : [];
 if ($hiddenItems !== []) {
+    $otherDestinationCounts = [];
+    foreach ($hiddenItems as $row) {
+        foreach ($locationsByCommodity[$row['_selection_key'] ?? ''] ?? [] as $location) {
+            $locationKey = strtolower($location['name']);
+            if (!isset($otherDestinationCounts[$locationKey])) {
+                $otherDestinationCounts[$locationKey] = $location;
+            } else {
+                $otherDestinationCounts[$locationKey]['count'] += $location['count'];
+            }
+        }
+    }
+    uasort($otherDestinationCounts, static function ($left, $right) {
+        return $right['count'] <=> $left['count'];
+    });
+    $locationsByCommodity['other'] = array_values($otherDestinationCounts);
     $summaryItems[] = [
+        'key' => 'other',
         'name' => 'Lainnya',
         'value' => (float)array_sum(array_column($hiddenItems, 'nilai_ekspor')),
         'color' => '#94a3b8',
@@ -884,7 +929,7 @@ foreach ($periodeOptions as $periodOption) {
                         <?php foreach ($summaryItems as $i => $item):
                             $pct = $totalNilai > 0 ? round(($item['value'] / $totalNilai) * 100, 1) : 0;
                         ?>
-                            <div class="top-bar-row">
+                            <div class="top-bar-row" role="button" tabindex="0" aria-pressed="false" data-selection-key="<?= htmlspecialchars($item['key'], ENT_QUOTES, 'UTF-8') ?>" aria-label="Tampilkan <?= htmlspecialchars($labelArahUpper . ' untuk ' . $item['name'], ENT_QUOTES, 'UTF-8') ?>">
                                 <span class="tbr-badge"><?= $i + 1 ?></span>
                                 <span class="tbr-label"><?= htmlspecialchars($item['name']) ?></span>
                                 <span class="tbr-val"><?= format_rupiah_singkat($item['value']) ?></span>
@@ -902,11 +947,11 @@ foreach ($periodeOptions as $periodOption) {
             <!-- Panel 3: Top Negara / Daerah -->
             <div class="panel-canva">
                 <div class="panel-header-canva">
-                    <h3>Top <?= $labelArahUpper ?></h3>
+                    <h3 id="destinationPanelTitle">Top <?= $labelArahUpper ?></h3>
                 </div>
                 <div class="panel-body-canva">
                     <div class="map-canvas-container">
-                        <div class="dest-list">
+                        <div class="dest-list" id="destinationList">
                             <?php 
                             $dIdx = 0;
                             foreach (array_slice($destCounts, 0, $topN > 0 ? $topN : count($destCounts), true) as $dName => $_):
@@ -938,6 +983,62 @@ foreach ($periodeOptions as $periodOption) {
         const summaryLabels = <?= json_encode(array_column($summaryItems, 'name'), JSON_UNESCAPED_UNICODE) ?>;
         const summaryValues = <?= json_encode(array_map('floatval', array_column($summaryItems, 'value'))) ?>;
         const summaryColors = <?= json_encode(array_column($summaryItems, 'color')) ?>;
+        const locationsByCommodity = <?= json_encode($locationsByCommodity, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+        const destinationLabel = <?= json_encode($labelArahUpper, JSON_UNESCAPED_UNICODE) ?>;
+        const destinationList = document.getElementById('destinationList');
+        const destinationPanelTitle = document.getElementById('destinationPanelTitle');
+
+        function showCommodityDestinations(row) {
+            const selectionKey = row.dataset.selectionKey;
+            const locations = locationsByCommodity[selectionKey] || [];
+            destinationPanelTitle.textContent = destinationLabel + ' — ' + row.querySelector('.tbr-label').textContent;
+            destinationList.replaceChildren();
+            if (locations.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'dest-row';
+                empty.textContent = 'Tidak ada data daerah/negara untuk komoditas ini.';
+                destinationList.appendChild(empty);
+            }
+            locations.forEach(function(location, index) {
+                const item = document.createElement('div');
+                item.className = 'dest-row';
+                item.title = location.name;
+                if (location.flag) {
+                    const flag = document.createElement('img');
+                    flag.className = 'dest-flag';
+                    flag.src = 'https://flagcdn.com/w40/' + encodeURIComponent(location.flag) + '.png';
+                    flag.alt = 'Bendera ' + location.name;
+                    item.appendChild(flag);
+                } else {
+                    const dot = document.createElement('span');
+                    dot.className = 'dest-dot';
+                    dot.style.backgroundColor = summaryColors[index % summaryColors.length] || '#0f766e';
+                    item.appendChild(dot);
+                }
+                const name = document.createElement('span');
+                name.className = 'dest-name';
+                name.textContent = location.name.toLocaleUpperCase('id-ID');
+                item.appendChild(name);
+                destinationList.appendChild(item);
+            });
+
+            document.querySelectorAll('.top-bar-row[data-selection-key]').forEach(function(candidate) {
+                candidate.classList.toggle('is-selected', candidate === row);
+                candidate.setAttribute('aria-pressed', candidate === row ? 'true' : 'false');
+            });
+        }
+
+        document.querySelectorAll('.top-bar-row[data-selection-key]').forEach(function(row) {
+            row.addEventListener('click', function() {
+                showCommodityDestinations(row);
+            });
+            row.addEventListener('keydown', function(event) {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    showCommodityDestinations(row);
+                }
+            });
+        });
 
         // 1. Donut Chart
         new Chart(document.getElementById('donutChartMaster'), {
