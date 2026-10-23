@@ -9,7 +9,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             <img src="../embed/logo-barantin.png" alt="Logo Barantin">
             <div class="admin-brand-text">
                 <strong>Badan Karantina Indonesia</strong>
-                <span>BKHIT Kalimantan Selatan</span>
+                <span>Balai Karantina Kalimantan Selatan</span>
             </div>
         </a>
 
