@@ -91,6 +91,30 @@ if (!in_array($periodeB, $periodeOptions, true)) $periodeB = $periodeOptions[cou
 $rentangPeriodeAwal = min($periodeA, $periodeB);
 $rentangPeriodeAkhir = max($periodeA, $periodeB);
 $periodeFilter = $periodeB;
+$yearOptionSet = [];
+foreach ($periodeOptions as $periodOption) {
+    $yearOptionSet[substr($periodOption, 0, 4)] = true;
+}
+$yearOptions = array_keys($yearOptionSet);
+sort($yearOptions, SORT_STRING);
+$comparisonYearA = trim($_GET['tahun_a'] ?? substr($periodeA, 0, 4));
+$comparisonYearB = trim($_GET['tahun_b'] ?? substr($periodeB, 0, 4));
+if (!in_array($comparisonYearA, $yearOptions, true)) {
+    $comparisonYearA = $yearOptions[0] ?? '';
+}
+if (!in_array($comparisonYearB, $yearOptions, true)) {
+    $comparisonYearB = $yearOptions[count($yearOptions) - 1] ?? '';
+}
+$comparisonYearStart = $comparisonYearA !== '' && $comparisonYearB !== ''
+    ? min($comparisonYearA, $comparisonYearB)
+    : '';
+$comparisonYearEnd = $comparisonYearA !== '' && $comparisonYearB !== ''
+    ? max($comparisonYearA, $comparisonYearB)
+    : '';
+$comparisonYears = $comparisonYearStart !== '' && $comparisonYearEnd !== ''
+    ? range((int)$comparisonYearStart, (int)$comparisonYearEnd)
+    : [];
+$comparisonYears = array_map('strval', $comparisonYears);
 
 if ($periodeB !== '') {
     $stmtPeriodSet = $pdo->prepare("SELECT * FROM ekspor_settings WHERE jenis_kegiatan = ? AND kategori = ? AND periode = ? LIMIT 1");
@@ -110,26 +134,28 @@ $requestedSort = $_GET['urutkan'] ?? '';
 if (is_string($requestedSort) && in_array($requestedSort, ['nilai_ekspor', 'frekuensi'], true)) {
     $urutan = $requestedSort;
 }
-$compareMode = $comparisonPage && $periodeA !== '' && $periodeB !== '';
+$compareMode = $comparisonPage && $comparisonYearStart !== '' && $comparisonYearEnd !== '';
 $comparisonLabelA = format_label_periode_kode($periodeA) ?: $periodeA;
 $comparisonLabelB = format_label_periode_kode($periodeB) ?: $periodeB;
-$comparisonRangeLabel = $periodeA === $periodeB
-    ? $comparisonLabelA
-    : (format_label_periode_kode($rentangPeriodeAwal) ?: $rentangPeriodeAwal)
-        . ' - ' .
-        (format_label_periode_kode($rentangPeriodeAkhir) ?: $rentangPeriodeAkhir);
+$comparisonRangeLabel = $comparisonPage
+    ? ($comparisonYearStart === $comparisonYearEnd
+        ? $comparisonYearStart
+        : $comparisonYearStart . ' - ' . $comparisonYearEnd)
+    : ($periodeA === $periodeB
+        ? $comparisonLabelA
+        : (format_label_periode_kode($rentangPeriodeAwal) ?: $rentangPeriodeAwal)
+            . ' - ' .
+            (format_label_periode_kode($rentangPeriodeAkhir) ?: $rentangPeriodeAkhir));
 
 $comparisonMonthly = [];
-if ($compareMode && $periodeA !== '' && $periodeB !== '') {
-    $comparisonYears = range((int)substr($rentangPeriodeAwal, 0, 4), (int)substr($rentangPeriodeAkhir, 0, 4));
-    $comparisonYears = array_map('strval', $comparisonYears);
+if ($compareMode) {
     $trendStmt = $pdo->prepare("SELECT periode, nilai_ekspor, volume, satuan, frekuensi, {$fieldTujuan} AS lokasi_tujuan
         FROM ekspor_komoditas
         WHERE jenis_kegiatan = ? AND kategori = ? AND is_published = 1
             AND periode REGEXP '^[0-9]{4}-[0-9]{2}$'
             AND periode >= ? AND periode <= ?
         ORDER BY periode");
-    $trendStmt->execute([$jenis, $kategori, $rentangPeriodeAwal, $rentangPeriodeAkhir]);
+    $trendStmt->execute([$jenis, $kategori, $comparisonYearStart . '-01', $comparisonYearEnd . '-12']);
     $trendRows = $trendStmt->fetchAll();
     foreach ($comparisonYears as $year) {
         $comparisonMonthly[$year] = [
@@ -191,10 +217,10 @@ $labelTahunPublik = $comparisonPage
 // 2. Query Data Published
 $queryParams = [$jenis, $kategori];
 $sql = "SELECT * FROM ekspor_komoditas WHERE jenis_kegiatan = ? AND kategori = ? AND is_published = 1";
-if ($comparisonPage && $periodeFilter !== '') {
+if ($comparisonPage && $compareMode) {
     $sql .= " AND periode REGEXP '^[0-9]{4}-[0-9]{2}$' AND periode >= ? AND periode <= ?";
-    $queryParams[] = $rentangPeriodeAwal;
-    $queryParams[] = $rentangPeriodeAkhir;
+    $queryParams[] = $comparisonYearStart . '-01';
+    $queryParams[] = $comparisonYearEnd . '-12';
 } elseif (!$comparisonPage && $periodeA !== '' && $periodeB !== '') {
     $sql .= " AND periode REGEXP '^[0-9]{4}-[0-9]{2}$' AND periode >= ? AND periode <= ?";
     $queryParams[] = $rentangPeriodeAwal;
@@ -492,19 +518,38 @@ $filterParams = [
     'periode_b' => $periodeB
 ];
 $boardFilterParams = array_merge(['jenis' => $jenis, 'kategori' => $kategori], $filterParams);
-$comparisonPageUrl = $assetPath . 'perbandingan.php?' . http_build_query($boardFilterParams);
-$urlParamsExtra = '&' . http_build_query($filterParams);
+$activeFilterParams = $comparisonPage
+    ? array_merge($filterParams, [
+        'tahun_a' => $comparisonYearA,
+        'tahun_b' => $comparisonYearB
+    ])
+    : $filterParams;
+$comparisonFilterParams = array_merge(['jenis' => $jenis, 'kategori' => $kategori], $activeFilterParams);
+$comparisonPageUrl = $assetPath . 'perbandingan.php?' . http_build_query($comparisonFilterParams);
+$urlParamsExtra = '&' . http_build_query($activeFilterParams);
 $topFilterUrls = [];
 foreach ([1, 3, 5, 10, 0] as $topOption) {
-    $params = $boardFilterParams;
+    $params = $comparisonPage ? $comparisonFilterParams : $boardFilterParams;
     $params['top_n'] = $topOption;
     $topFilterUrls[$topOption] = '?' . http_build_query($params);
 }
 $sortFilterUrls = [];
 foreach (['nilai_ekspor', 'frekuensi'] as $sortOption) {
-    $params = $boardFilterParams;
+    $params = $comparisonPage ? $comparisonFilterParams : $boardFilterParams;
     $params['urutkan'] = $sortOption;
     $sortFilterUrls[$sortOption] = '?' . http_build_query($params);
+}
+$comparisonYearAUrls = [];
+foreach ($yearOptions as $yearOption) {
+    $params = $comparisonFilterParams;
+    $params['tahun_a'] = $yearOption;
+    $comparisonYearAUrls[$yearOption] = '?' . http_build_query($params);
+}
+$comparisonYearBUrls = [];
+foreach ($yearOptions as $yearOption) {
+    $params = $comparisonFilterParams;
+    $params['tahun_b'] = $yearOption;
+    $comparisonYearBUrls[$yearOption] = '?' . http_build_query($params);
 }
 $periodeAUrls = [];
 foreach ($periodeOptions as $periodOption) {
@@ -575,29 +620,55 @@ foreach ($periodeOptions as $periodOption) {
                 </select>
             </label>
 
-            <label class="hero-select-field">
-                <span class="hero-filter-label">Periode A</span>
-                <select name="periode_a" aria-label="Pilih bulan periode A" onchange="window.location.href = this.value" <?= empty($periodeOptions) ? 'disabled' : '' ?>>
-                    <?php foreach ($periodeOptions as $periodOption): ?>
-                        <option value="<?= htmlspecialchars($periodeAUrls[$periodOption], ENT_QUOTES, 'UTF-8') ?>" <?= $periodeA === $periodOption ? 'selected' : '' ?>><?= htmlspecialchars(format_label_periode_kode($periodOption) ?: $periodOption) ?></option>
-                    <?php endforeach; ?>
-                    <?php if (empty($periodeOptions)): ?>
-                        <option value="">Belum ada data bulanan</option>
-                    <?php endif; ?>
-                </select>
-            </label>
+            <?php if ($comparisonPage): ?>
+                <label class="hero-select-field">
+                    <span class="hero-filter-label">Tahun Awal</span>
+                    <select name="tahun_a" aria-label="Pilih tahun awal grafik" onchange="window.location.href = this.value" <?= empty($yearOptions) ? 'disabled' : '' ?>>
+                        <?php foreach ($yearOptions as $yearOption): ?>
+                            <option value="<?= htmlspecialchars($comparisonYearAUrls[$yearOption], ENT_QUOTES, 'UTF-8') ?>" <?= $comparisonYearA === $yearOption ? 'selected' : '' ?>><?= htmlspecialchars($yearOption) ?></option>
+                        <?php endforeach; ?>
+                        <?php if (empty($yearOptions)): ?>
+                            <option value="">Belum ada data tahunan</option>
+                        <?php endif; ?>
+                    </select>
+                </label>
 
-            <label class="hero-select-field">
-                <span class="hero-filter-label">Periode B</span>
-                <select name="periode_b" aria-label="Pilih bulan periode B" onchange="window.location.href = this.value" <?= empty($periodeOptions) ? 'disabled' : '' ?>>
-                    <?php foreach ($periodeOptions as $periodOption): ?>
-                        <option value="<?= htmlspecialchars($periodeBUrls[$periodOption], ENT_QUOTES, 'UTF-8') ?>" <?= $periodeB === $periodOption ? 'selected' : '' ?>><?= htmlspecialchars(format_label_periode_kode($periodOption) ?: $periodOption) ?></option>
-                    <?php endforeach; ?>
-                    <?php if (empty($periodeOptions)): ?>
-                        <option value="">Belum ada data bulanan</option>
-                    <?php endif; ?>
-                </select>
-            </label>
+                <label class="hero-select-field">
+                    <span class="hero-filter-label">Tahun Akhir</span>
+                    <select name="tahun_b" aria-label="Pilih tahun akhir grafik" onchange="window.location.href = this.value" <?= empty($yearOptions) ? 'disabled' : '' ?>>
+                        <?php foreach ($yearOptions as $yearOption): ?>
+                            <option value="<?= htmlspecialchars($comparisonYearBUrls[$yearOption], ENT_QUOTES, 'UTF-8') ?>" <?= $comparisonYearB === $yearOption ? 'selected' : '' ?>><?= htmlspecialchars($yearOption) ?></option>
+                        <?php endforeach; ?>
+                        <?php if (empty($yearOptions)): ?>
+                            <option value="">Belum ada data tahunan</option>
+                        <?php endif; ?>
+                    </select>
+                </label>
+            <?php else: ?>
+                <label class="hero-select-field">
+                    <span class="hero-filter-label">Periode A</span>
+                    <select name="periode_a" aria-label="Pilih bulan periode A" onchange="window.location.href = this.value" <?= empty($periodeOptions) ? 'disabled' : '' ?>>
+                        <?php foreach ($periodeOptions as $periodOption): ?>
+                            <option value="<?= htmlspecialchars($periodeAUrls[$periodOption], ENT_QUOTES, 'UTF-8') ?>" <?= $periodeA === $periodOption ? 'selected' : '' ?>><?= htmlspecialchars(format_label_periode_kode($periodOption) ?: $periodOption) ?></option>
+                        <?php endforeach; ?>
+                        <?php if (empty($periodeOptions)): ?>
+                            <option value="">Belum ada data bulanan</option>
+                        <?php endif; ?>
+                    </select>
+                </label>
+
+                <label class="hero-select-field">
+                    <span class="hero-filter-label">Periode B</span>
+                    <select name="periode_b" aria-label="Pilih bulan periode B" onchange="window.location.href = this.value" <?= empty($periodeOptions) ? 'disabled' : '' ?>>
+                        <?php foreach ($periodeOptions as $periodOption): ?>
+                            <option value="<?= htmlspecialchars($periodeBUrls[$periodOption], ENT_QUOTES, 'UTF-8') ?>" <?= $periodeB === $periodOption ? 'selected' : '' ?>><?= htmlspecialchars(format_label_periode_kode($periodOption) ?: $periodOption) ?></option>
+                        <?php endforeach; ?>
+                        <?php if (empty($periodeOptions)): ?>
+                            <option value="">Belum ada data bulanan</option>
+                        <?php endif; ?>
+                    </select>
+                </label>
+            <?php endif; ?>
 
             <label class="hero-select-field">
                 <span class="hero-filter-label">Tampilkan</span>
@@ -648,6 +719,7 @@ foreach ($periodeOptions as $periodOption) {
             const comparisonLabels = <?= json_encode(array_map('nama_bulan_indo', range(1, 12))) ?>;
             const comparisonYears = <?= json_encode($comparisonYears) ?>;
             const comparisonYearData = <?= json_encode(array_intersect_key($comparisonMonthly, array_flip($comparisonYears))) ?>;
+            const comparisonColors = ['#2563eb', '#0f766e', '#d97706', '#7c3aed', '#db2777', '#0891b2'];
             const comparisonCharts = [
                 ['comparisonChartNilai', 'nilai', 1000000000],
                 ['comparisonChartVolume', 'volume', 1],
@@ -660,7 +732,7 @@ foreach ($periodeOptions as $periodOption) {
                     data: {
                         labels: comparisonLabels,
                         datasets: comparisonYears.map(function(year, index) {
-                            const color = index === 0 ? '#2563eb' : '#0f766e';
+                            const color = comparisonColors[index % comparisonColors.length];
                             const values = comparisonYearData[year][chartItem[1]] || {};
                             return {
                                 label: year,
