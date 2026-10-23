@@ -42,13 +42,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <!-- Header -->
         <div class="page-header">
             <div>
-                <span class="eyebrow badge-hewan" style="background: var(--cat-hewan-soft); color: var(--cat-hewan); border-color: rgba(180,83,9,0.2);"><span class="dot dot-hewan"></span> Karantina Hewan (KH)</span>
                 <h1 class="page-title">Upload Excel Komoditas Hewan</h1>
             </div>
-            <a href="template_sample.php?kategori=hewan" class="btn btn-secondary">
-                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                <span>Download Template Hewan</span>
-            </a>
         </div>
 
         <!-- Alerts -->

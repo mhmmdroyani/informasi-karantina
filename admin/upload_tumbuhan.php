@@ -41,13 +41,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <!-- Header -->
         <div class="page-header">
             <div>
-                <span class="eyebrow" style="background: var(--cat-tumbuhan-soft); color: var(--cat-tumbuhan); border-color: rgba(21,128,61,0.2);"><span class="dot dot-tumbuhan"></span> Karantina Tumbuhan (KT)</span>
                 <h1 class="page-title">Upload Excel Komoditas Tumbuhan</h1>
             </div>
-            <a href="template_sample.php?kategori=tumbuhan" class="btn btn-secondary">
-                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                <span>Download Template Tumbuhan</span>
-            </a>
         </div>
 
         <!-- Alerts -->

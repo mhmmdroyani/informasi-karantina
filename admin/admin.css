@@ -465,10 +465,6 @@ a {
 .badge-neutral { background: var(--bg); color: var(--ink-soft); border-color: var(--line); }
 .badge-gold { background: var(--gold-soft); color: var(--gold); border-color: rgba(180, 83, 9, 0.2); }
 .badge-danger { background: var(--danger-soft); color: var(--danger); border-color: rgba(185, 28, 28, 0.2); }
-.badge-hewan { background: var(--cat-hewan-soft); color: var(--cat-hewan); }
-.badge-ikan { background: var(--cat-ikan-soft); color: var(--cat-ikan); }
-.badge-tumbuhan { background: var(--cat-tumbuhan-soft); color: var(--cat-tumbuhan); }
-
 .dot {
   width: 8px;
   height: 8px;
