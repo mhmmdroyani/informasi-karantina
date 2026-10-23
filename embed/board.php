@@ -119,31 +119,8 @@ $comparisonRangeLabel = $periodeA === $periodeB
         . ' - ' .
         (format_label_periode_kode($rentangPeriodeAkhir) ?: $rentangPeriodeAkhir);
 
-$comparison = null;
 $comparisonMonthly = [];
 if ($compareMode && $periodeA !== '' && $periodeB !== '') {
-    $compareStmt = $pdo->prepare("SELECT periode, nilai_ekspor, volume, satuan, frekuensi, {$fieldTujuan} AS lokasi_tujuan FROM ekspor_komoditas WHERE jenis_kegiatan = ? AND kategori = ? AND is_published = 1 AND periode REGEXP '^[0-9]{4}-[0-9]{2}$' AND periode >= ? AND periode <= ?");
-    $compareStmt->execute([$jenis, $kategori, $rentangPeriodeAwal, $rentangPeriodeAkhir]);
-    $comparisonRows = $compareStmt->fetchAll();
-    $countries = [];
-    foreach ($comparisonRows as $row) {
-        $parts = preg_split('/\s*(?:,|;|\/|\|)\s*/', (string)($row['lokasi_tujuan'] ?? ''));
-        foreach ($parts as $country) {
-            $country = trim($country);
-            if ($country !== '') $countries[strtolower($country)] = $country;
-        }
-    }
-    $comparisonVolume = 0.0;
-    foreach ($comparisonRows as $row) {
-        $comparisonVolume += normalize_compatible_volume_unit($row['volume'], $row['satuan'] ?? '')['volume'];
-    }
-    $comparison = [
-        'nilai' => (float)array_sum(array_column($comparisonRows, 'nilai_ekspor')),
-        'volume' => $comparisonVolume,
-        'frekuensi' => (int)array_sum(array_column($comparisonRows, 'frekuensi')),
-        'negara' => count($countries)
-    ];
-
     $comparisonYears = range((int)substr($rentangPeriodeAwal, 0, 4), (int)substr($rentangPeriodeAkhir, 0, 4));
     $comparisonYears = array_map('strval', $comparisonYears);
     $trendStmt = $pdo->prepare("SELECT periode, nilai_ekspor, volume, satuan, frekuensi, {$fieldTujuan} AS lokasi_tujuan
@@ -557,7 +534,6 @@ foreach ($periodeOptions as $periodOption) {
 
         <?php if ($showControls): ?>
         <div class="board-topbar-actions">
-            <a href="<?= htmlspecialchars($comparisonPageUrl, ENT_QUOTES, 'UTF-8') ?>" class="board-nav-link">Bandingkan Periode</a>
             <a href="<?= $assetPath ?>../admin/index.php" class="board-login-btn">Login</a>
         </div>
         <?php endif; ?>
@@ -568,9 +544,7 @@ foreach ($periodeOptions as $periodOption) {
 
     <!-- Hero -->
     <section class="board-hero">
-        <h1 class="board-hero-title"><?= $comparisonPage ? 'Laporan Perbandingan' : 'Top ' . ($topN > 0 ? $topN : 'Semua') . ' Komoditas' ?> <?= $labelKategori ?> — <?= $labelKegiatan ?></h1>
-        <?php if ($comparisonPage): ?>
-        <?php endif; ?>
+        <h1 class="board-hero-title"><?= $comparisonPage ? 'Mode Grafik' : 'Top ' . ($topN > 0 ? $topN : 'Semua') . ' Komoditas' ?> <?= $labelKategori ?> — <?= $labelKegiatan ?></h1>
 
         <div class="board-periode-wrap">
             <span class="board-periode-badge"><?= htmlspecialchars(str_replace(' - ', ' – ', $labelTahunPublik)) ?></span>
@@ -636,55 +610,33 @@ foreach ($periodeOptions as $periodOption) {
                 </select>
             </label>
 
-            <label class="hero-select-field">
-                <span class="hero-filter-label">Urutkan</span>
-                <select name="urutkan" aria-label="Urutkan komoditas" onchange="window.location.href = this.value">
-                    <option value="<?= htmlspecialchars($sortFilterUrls['nilai_ekspor'], ENT_QUOTES, 'UTF-8') ?>" <?= $urutan === 'nilai_ekspor' ? 'selected' : '' ?>>Nilai Barang</option>
-                    <option value="<?= htmlspecialchars($sortFilterUrls['frekuensi'], ENT_QUOTES, 'UTF-8') ?>" <?= $urutan === 'frekuensi' ? 'selected' : '' ?>>Frekuensi</option>
-                </select>
-            </label>
+            <div class="board-sort-mode">
+                <label class="hero-select-field">
+                    <span class="hero-filter-label">Urutkan</span>
+                    <select name="urutkan" aria-label="Urutkan komoditas" onchange="window.location.href = this.value">
+                        <option value="<?= htmlspecialchars($sortFilterUrls['nilai_ekspor'], ENT_QUOTES, 'UTF-8') ?>" <?= $urutan === 'nilai_ekspor' ? 'selected' : '' ?>>Nilai Barang</option>
+                        <option value="<?= htmlspecialchars($sortFilterUrls['frekuensi'], ENT_QUOTES, 'UTF-8') ?>" <?= $urutan === 'frekuensi' ? 'selected' : '' ?>>Frekuensi</option>
+                    </select>
+                </label>
 
-            <?php if ($comparisonPage): ?>
-            <a href="<?= $assetPath ?>../index.php?<?= htmlspecialchars(http_build_query($boardFilterParams), ENT_QUOTES, 'UTF-8') ?>" class="board-compare-btn">Kembali ke Board</a>
-            <?php endif; ?>
+                <a
+                    href="<?= htmlspecialchars($comparisonPage
+                        ? $assetPath . '../index.php?' . http_build_query($boardFilterParams)
+                        : $comparisonPageUrl, ENT_QUOTES, 'UTF-8') ?>"
+                    class="board-compare-btn"
+                    <?= $comparisonPage ? 'aria-label="Kembali ke ringkasan Board Publik"' : 'aria-label="Buka Mode Grafik"' ?>
+                ><?= $comparisonPage ? 'Kembali ke Ringkasan' : 'Mode Grafik' ?></a>
+            </div>
 
         </div>
         <?php endif; ?>
     </section>
 
-    <?php if ($comparisonPage && $compareMode && $comparison !== null): ?>
-        <?php
-        $comparisonMetrics = [
-            ['label' => 'Nilai ' . $labelKegiatan, 'key' => 'nilai', 'format' => fn($value) => format_rupiah_singkat($value)],
-            ['label' => 'Volume', 'key' => 'volume', 'format' => fn($value) => format_angka($value, 1)],
-            ['label' => 'Frekuensi', 'key' => 'frekuensi', 'format' => fn($value) => format_angka($value)],
-            ['label' => $isDomestik ? get_label_arah($jenis) : 'Negara Tujuan', 'key' => 'negara', 'format' => fn($value) => format_angka($value)]
-        ];
-        ?>
+    <?php if ($comparisonPage && $compareMode): ?>
         <section class="board-comparison" aria-label="Perbandingan periode">
-            <div class="board-comparison-header">
-                <div>
-                    <h2>Ringkasan Periode</h2>
-                    <p>Total akumulasi seluruh bulan dalam rentang yang dipilih.</p>
-                </div>
-            </div>
-            <div class="board-comparison-grid">
-                <?php foreach ($comparisonMetrics as $metric):
-                    $value = $comparison[$metric['key']];
-                ?>
-                    <div class="board-comparison-card">
-                        <span><?= htmlspecialchars($metric['label']) ?></span>
-                        <div class="comparison-values">
-                            <div>
-                                <small><?= htmlspecialchars($comparisonRangeLabel) ?></small>
-                                <strong><?= $metric['format']($value) ?></strong>
-                            </div>
-                        </div>
-                    </div>
-                <?php endforeach; ?>
-            </div>
             <div class="board-comparison-chart">
-                <h3>Grafik Bulanan dalam Rentang Periode</h3>
+                <h2>Grafik Perbandingan Bulanan</h2>
+                <p><?= htmlspecialchars($comparisonRangeLabel) ?></p>
                 <div class="comparison-chart-grid">
                     <div class="comparison-chart-card"><span>Nilai <?= htmlspecialchars($labelKegiatan) ?> (Miliar Rp)</span><div class="comparison-chart-canvas"><canvas id="comparisonChartNilai"></canvas></div></div>
                     <div class="comparison-chart-card"><span>Volume</span><div class="comparison-chart-canvas"><canvas id="comparisonChartVolume"></canvas></div></div>
