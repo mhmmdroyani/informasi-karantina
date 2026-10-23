@@ -94,9 +94,23 @@ sort($validPeriods, SORT_STRING);
 $periodeA = in_array($requestedPeriodA, $validPeriods, true)
     ? $requestedPeriodA
     : ($validPeriods[0] ?? '');
+$defaultPeriodeB = (new DateTimeImmutable('first day of this month'))
+    ->modify('-1 month')
+    ->format('Y-m');
+if (!in_array($defaultPeriodeB, $validPeriods, true)) {
+    $availablePreviousPeriods = array_values(array_filter(
+        $validPeriods,
+        static function ($period) use ($defaultPeriodeB) {
+            return $period <= $defaultPeriodeB;
+        }
+    ));
+    $defaultPeriodeB = $availablePreviousPeriods !== []
+        ? end($availablePreviousPeriods)
+        : ($validPeriods[count($validPeriods) - 1] ?? '');
+}
 $periodeB = in_array($requestedPeriodB, $validPeriods, true)
     ? $requestedPeriodB
-    : ($validPeriods[count($validPeriods) - 1] ?? '');
+    : $defaultPeriodeB;
 $periodeFilter = $periodeB;
 $aggregateMode = $periodeA !== '' && $periodeB !== '' && $periodeA !== $periodeB;
 $rangeStart = $periodeA !== '' && $periodeB !== '' ? min($periodeA, $periodeB) : '';
