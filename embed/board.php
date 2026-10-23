@@ -570,7 +570,6 @@ foreach ($periodeOptions as $periodOption) {
     <section class="board-hero">
         <h1 class="board-hero-title"><?= $comparisonPage ? 'Laporan Perbandingan' : 'Top ' . ($topN > 0 ? $topN : 'Semua') . ' Komoditas' ?> <?= $labelKategori ?> — <?= $labelKegiatan ?></h1>
         <?php if ($comparisonPage): ?>
-            <p class="board-hero-desc">Ringkasan akumulasi data dari Periode A hingga Periode B.</p>
         <?php endif; ?>
 
         <div class="board-periode-wrap">
