@@ -11,6 +11,13 @@ $currentJenis = $_GET['jenis'] ?? 'domestik_masuk';
 if (!in_array($currentJenis, ['ekspor', 'impor', 'domestik_keluar', 'domestik_masuk'])) {
     $currentJenis = 'domestik_masuk';
 }
+$currentKategori = $_GET['kategori'] ?? 'hewan';
+if (!in_array($currentKategori, ['hewan', 'ikan', 'tumbuhan'], true)) {
+    $currentKategori = 'hewan';
+}
+$labelNegara = in_array($currentJenis, ['domestik_keluar', 'domestik_masuk'], true)
+    ? 'Negara / Perusahaan (opsional)'
+    : get_label_arah($currentJenis) . ' / Perusahaan';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     require_csrf();
@@ -24,13 +31,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!in_array($kategori, ['hewan', 'ikan', 'tumbuhan'])) {
         $kategori = 'hewan';
     }
+    $currentKategori = $kategori;
 
+    $klasifikasi = trim($_POST['klasifikasi'] ?? '');
     $namaKomoditas = trim($_POST['nama_komoditas'] ?? '');
     $namaKomoditasLokal = trim($_POST['nama_komoditas_lokal'] ?? '');
     $frekuensi = (int)clean_number($_POST['frekuensi'] ?? 0);
     $volume = clean_number($_POST['volume'] ?? 0);
     $satuan = trim($_POST['satuan'] ?? '') ?: 'Kilogram';
     $nilaiEkspor = clean_number($_POST['nilai_ekspor'] ?? 0);
+    $daerahAsal = trim($_POST['daerah_asal'] ?? '');
+    $daerahTujuan = trim($_POST['daerah_tujuan'] ?? '');
     $negaraTujuan = trim($_POST['negara_tujuan'] ?? '');
 
     $cal = parse_calendar_filter('bulan', $_POST);
@@ -43,18 +54,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Nama komoditas wajib diisi!';
     } else {
         $stmt = $pdo->prepare("INSERT INTO ekspor_komoditas
-            (jenis_kegiatan, kategori, nama_komoditas, nama_komoditas_lokal, frekuensi, volume, satuan, nilai_ekspor, negara_tujuan, periode, tanggal_mulai, tanggal_selesai, is_published)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            (jenis_kegiatan, kategori, klasifikasi, nama_komoditas, nama_komoditas_lokal, frekuensi, volume, satuan, nilai_ekspor, daerah_asal, daerah_tujuan, negara_tujuan, periode, tanggal_mulai, tanggal_selesai, is_published)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
         $stmt->execute([
             $jenis,
             $kategori,
+            $klasifikasi ?: null,
             $namaKomoditas,
             $namaKomoditasLokal ?: null,
             $frekuensi,
             $volume,
             $satuan,
             $nilaiEkspor,
-            $negaraTujuan,
+            $daerahAsal ?: null,
+            $daerahTujuan ?: null,
+            $negaraTujuan ?: null,
             $periode,
             $tanggalMulai,
             $tanggalSelesai,
@@ -92,7 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     <div><?= $message ?></div>
                 </div>
-                <a href="kelola_data.php?jenis=<?= $currentJenis ?>" class="btn btn-primary btn-sm">Lihat di Kelola Data &rarr;</a>
+                <a href="kelola_data.php?jenis=<?= urlencode($currentJenis) ?>&kategori=<?= urlencode($currentKategori) ?>" class="btn btn-primary btn-sm">Lihat di Kelola Data &rarr;</a>
             </div>
         <?php endif; ?>
         <?php if (!empty($error)): ?>
@@ -131,10 +145,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div>
                     <label class="field-label">Kategori Komoditas <span style="color: var(--danger);">*</span></label>
                     <select name="kategori" id="selectKategori" class="field-input" onchange="toggleLokalField()">
-                        <option value="hewan">Hewan (KH)</option>
-                        <option value="ikan">Ikan (KI)</option>
-                        <option value="tumbuhan">Tumbuhan (KT)</option>
+                        <option value="hewan" <?= $currentKategori === 'hewan' ? 'selected' : '' ?>>Hewan (KH)</option>
+                        <option value="ikan" <?= $currentKategori === 'ikan' ? 'selected' : '' ?>>Ikan (KI)</option>
+                        <option value="tumbuhan" <?= $currentKategori === 'tumbuhan' ? 'selected' : '' ?>>Tumbuhan (KT)</option>
                     </select>
+                </div>
+
+                <div>
+                    <label class="field-label">Klasifikasi</label>
+                    <input type="text" name="klasifikasi" class="field-input" placeholder="Klasifikasi komoditas">
                 </div>
 
                 <div>
@@ -172,8 +191,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <input type="text" name="nilai_ekspor" value="0" class="field-input">
                 </div>
 
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
+                    <div>
+                        <label class="field-label">Daerah Asal</label>
+                        <input type="text" name="daerah_asal" class="field-input" placeholder="Daerah asal komoditas">
+                    </div>
+                    <div>
+                        <label class="field-label">Daerah Tujuan</label>
+                        <input type="text" name="daerah_tujuan" class="field-input" placeholder="Daerah tujuan komoditas">
+                    </div>
+                </div>
+
                 <div>
-                    <label class="field-label">Negara / Daerah Tujuan (atau Perusahaan)</label>
+                    <label class="field-label" id="countryFieldLabel"><?= htmlspecialchars($labelNegara) ?></label>
                     <input type="text" name="negara_tujuan" class="field-input" placeholder="Pisahkan dengan koma jika lebih dari satu">
                 </div>
 
@@ -198,7 +228,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </label>
 
                 <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid var(--line);">
-                    <a href="kelola_data.php" style="font-size: 13px; color: var(--ink-muted); text-decoration: none;">Batal / Ke Kelola Data</a>
+                    <a href="kelola_data.php?jenis=<?= urlencode($currentJenis) ?>&kategori=<?= urlencode($currentKategori) ?>" style="font-size: 13px; color: var(--ink-muted); text-decoration: none;">Batal / Ke Kelola Data</a>
                     <button type="submit" class="btn btn-primary">
                         <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                         <span>Simpan Data</span>
@@ -213,7 +243,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         const kategori = document.getElementById('selectKategori').value;
         document.getElementById('fieldLokal').style.display = kategori === 'ikan' ? 'block' : 'none';
     }
+
+    function updateCountryFieldLabel() {
+        const jenis = document.querySelector('input[name="jenis_kegiatan"]:checked').value;
+        const labels = {
+            ekspor: 'Negara Tujuan / Perusahaan',
+            impor: 'Negara Asal / Perusahaan',
+            domestik_keluar: 'Negara / Perusahaan (opsional)',
+            domestik_masuk: 'Negara / Perusahaan (opsional)'
+        };
+        document.getElementById('countryFieldLabel').textContent = labels[jenis];
+    }
+
+    document.querySelectorAll('input[name="jenis_kegiatan"]').forEach(function(input) {
+        input.addEventListener('change', updateCountryFieldLabel);
+    });
     toggleLokalField();
+    updateCountryFieldLabel();
     </script>
 </body>
 </html>

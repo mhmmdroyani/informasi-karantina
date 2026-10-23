@@ -20,15 +20,21 @@ if (!$row) {
 }
 
 $error = '';
+$labelNegara = in_array($row['jenis_kegiatan'], ['domestik_keluar', 'domestik_masuk'], true)
+    ? 'Negara / Perusahaan (opsional)'
+    : get_label_arah($row['jenis_kegiatan']) . ' / Perusahaan';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     require_csrf();
     $namaKomoditas = trim($_POST['nama_komoditas'] ?? '');
     $namaKomoditasLokal = trim($_POST['nama_komoditas_lokal'] ?? '');
+    $klasifikasi = trim($_POST['klasifikasi'] ?? '');
     $frekuensi = (int)clean_number($_POST['frekuensi'] ?? 0);
     $volume = clean_number($_POST['volume'] ?? 0);
     $satuan = trim($_POST['satuan'] ?? '') ?: 'Kilogram';
     $nilaiEkspor = clean_number($_POST['nilai_ekspor'] ?? 0);
+    $daerahAsal = trim($_POST['daerah_asal'] ?? '');
+    $daerahTujuan = trim($_POST['daerah_tujuan'] ?? '');
     $negaraTujuan = trim($_POST['negara_tujuan'] ?? '');
     $tanggalMulai = trim($_POST['tanggal_mulai'] ?? '');
     $tanggalSelesai = trim($_POST['tanggal_selesai'] ?? '');
@@ -37,17 +43,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Nama komoditas wajib diisi!';
     } else {
         $stmtUpdate = $pdo->prepare("UPDATE ekspor_komoditas SET
-            nama_komoditas = ?, nama_komoditas_lokal = ?, frekuensi = ?, volume = ?, satuan = ?,
-            nilai_ekspor = ?, negara_tujuan = ?, tanggal_mulai = ?, tanggal_selesai = ?
+            klasifikasi = ?, nama_komoditas = ?, nama_komoditas_lokal = ?, frekuensi = ?, volume = ?, satuan = ?,
+            nilai_ekspor = ?, daerah_asal = ?, daerah_tujuan = ?, negara_tujuan = ?, tanggal_mulai = ?, tanggal_selesai = ?
             WHERE id = ?");
         $stmtUpdate->execute([
+            $klasifikasi ?: null,
             $namaKomoditas,
             $namaKomoditasLokal ?: null,
             $frekuensi,
             $volume,
             $satuan,
             $nilaiEkspor,
-            $negaraTujuan,
+            $daerahAsal ?: null,
+            $daerahTujuan ?: null,
+            $negaraTujuan ?: null,
             $tanggalMulai ?: null,
             $tanggalSelesai ?: null,
             $id
@@ -75,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div>
                 <span class="eyebrow"><span class="dot dot-brand"></span> <?= htmlspecialchars(get_label_kegiatan($row['jenis_kegiatan'])) ?> &bull; <?= ucfirst($row['kategori']) ?></span>
                 <h1 class="page-title">Edit Data Komoditas</h1>
-                <p class="page-desc">Perbarui data komoditas ini tanpa perlu mengunggah ulang file Excel.</p>
+                <p class="page-desc">Perbarui data komoditas, klasifikasi, lokasi asal/tujuan, dan periode tanpa perlu mengunggah ulang file Excel.</p>
             </div>
         </div>
 
@@ -90,6 +99,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <form method="POST" action="" style="display: flex; flex-direction: column; gap: 18px;">
                 <?= csrf_field() ?>
                 <input type="hidden" name="id" value="<?= (int)$row['id'] ?>">
+
+                <div>
+                    <label class="field-label">Klasifikasi</label>
+                    <input type="text" name="klasifikasi" value="<?= htmlspecialchars($row['klasifikasi'] ?? '') ?>" class="field-input">
+                </div>
 
                 <div>
                     <label class="field-label">Nama Komoditas <span style="color: var(--danger);">*</span></label>
@@ -123,8 +137,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <input type="text" name="nilai_ekspor" value="<?= htmlspecialchars($row['nilai_ekspor']) ?>" class="field-input">
                 </div>
 
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
+                    <div>
+                        <label class="field-label">Daerah Asal</label>
+                        <input type="text" name="daerah_asal" value="<?= htmlspecialchars($row['daerah_asal'] ?? '') ?>" class="field-input">
+                    </div>
+                    <div>
+                        <label class="field-label">Daerah Tujuan</label>
+                        <input type="text" name="daerah_tujuan" value="<?= htmlspecialchars($row['daerah_tujuan'] ?? '') ?>" class="field-input">
+                    </div>
+                </div>
+
                 <div>
-                    <label class="field-label">Negara / Daerah Tujuan</label>
+                    <label class="field-label"><?= htmlspecialchars($labelNegara) ?></label>
                     <input type="text" name="negara_tujuan" value="<?= htmlspecialchars($row['negara_tujuan'] ?? '') ?>" class="field-input">
                     <p class="field-hint">Pisahkan dengan koma jika lebih dari satu.</p>
                 </div>
