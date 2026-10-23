@@ -1,5 +1,10 @@
 <?php
 // database/rename_domisili_to_domestik.php - migrasi satu kali: domisili_keluar/masuk -> domestik_keluar/masuk
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    exit;
+}
+
 require_once __DIR__ . '/../config/koneksi.php';
 
 try {

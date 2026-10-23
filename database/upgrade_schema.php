@@ -1,13 +1,13 @@
 <?php
 // database/upgrade_schema.php
-$host = 'sql209.infinityfree.com';
-$user = 'if0_42997399';
-$pass = 'bkhitkalsel2026';
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    exit;
+}
+
+require_once __DIR__ . '/../config/koneksi.php';
 
 try {
-    $pdo = new PDO("mysql:host={$host};dbname=db_ekspor_karantina;charset=utf8mb4", $user, $pass);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
     echo "Memulai migrasi database untuk 4 jenis kegiatan lalu lintas...\n";
 
     // 1. Periksa apakah kolom jenis_kegiatan sudah ada di ekspor_komoditas

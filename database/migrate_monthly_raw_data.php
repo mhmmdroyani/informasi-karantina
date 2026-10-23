@@ -1,4 +1,9 @@
 <?php
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    exit;
+}
+
 $host = getenv('SILAKOM_DB_HOST');
 $database = getenv('SILAKOM_DB_NAME');
 $user = getenv('SILAKOM_DB_USER');
@@ -31,4 +36,3 @@ try {
     fwrite(STDERR, "Migrasi gagal: " . $exception->getMessage() . "\n");
     exit(1);
 }
-

@@ -5,10 +5,20 @@ if (PHP_SAPI !== 'cli') {
     exit("Skrip ini hanya boleh dijalankan melalui CLI.\n");
 }
 
-$database = 'db_ekspor_karantina';
-$host = '127.0.0.1';
-$user = 'root';
-$pass = '';
+$database = getenv('SILAKOM_DB_NAME') ?: 'db_ekspor_karantina';
+$host = getenv('SILAKOM_DB_HOST') ?: '127.0.0.1';
+$user = getenv('SILAKOM_DB_USER') ?: 'root';
+$pass = getenv('SILAKOM_DB_PASSWORD');
+$pass = $pass === false ? '' : $pass;
+$initialPassword = getenv('SILAKOM_INITIAL_ADMIN_PASSWORD');
+if (!preg_match('/^[A-Za-z0-9_]+$/', $database)) {
+    fwrite(STDERR, "Nama database SILAKOM tidak valid.\n");
+    exit(1);
+}
+if ($initialPassword === false || strlen($initialPassword) < 16) {
+    fwrite(STDERR, "Atur SILAKOM_INITIAL_ADMIN_PASSWORD dengan minimal 16 karakter.\n");
+    exit(1);
+}
 
 $confirmed = in_array('--confirm', $argv ?? [], true);
 if (!$confirmed) {
@@ -31,10 +41,18 @@ try {
     if ($schema === false || trim($schema) === '') {
         throw new RuntimeException('File database/setup.sql tidak dapat dibaca.');
     }
+    $quotedDatabase = '`' . $database . '`';
+    $schema = preg_replace(
+        '/^CREATE DATABASE IF NOT EXISTS\s+`?[^`\s;]+`?/mi',
+        'CREATE DATABASE IF NOT EXISTS ' . $quotedDatabase,
+        $schema,
+        1
+    );
+    $schema = preg_replace('/^USE\s+`?[^`\s;]+`?\s*;/mi', 'USE ' . $quotedDatabase . ';', $schema, 1);
     $pdo->exec($schema);
-    $pdo->exec("USE `{$database}`");
+    $pdo->exec("USE {$quotedDatabase}");
 
-    $adminHash = password_hash('admin123', PASSWORD_DEFAULT);
+    $adminHash = password_hash($initialPassword, PASSWORD_DEFAULT);
     $adminStmt = $pdo->prepare(
         "INSERT INTO admin_users (username, password, nama, role, is_active)
         VALUES (?, ?, ?, 'admin', 1)"
@@ -43,7 +61,7 @@ try {
 
     echo "Reset database berhasil.\n";
     echo "Database: {$database}\n";
-    echo "Admin: admin / admin123\n";
+    echo "Akun admin dibuat. Gunakan password yang diberikan melalui environment secara aman.\n";
 } catch (Throwable $e) {
     fwrite(STDERR, "Reset database gagal: {$e->getMessage()}\n");
     exit(1);

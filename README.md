@@ -25,12 +25,12 @@ Aplikasi PHP untuk mengelola data lalu lintas komoditas karantina Kalimantan Sel
    composer install
    ```
 
-2. Siapkan database MySQL sesuai skema di `database/setup.sql`. Sebelum menjalankan skrip setup atau migrasi pada database yang sudah berisi data, buat cadangan dan periksa skripnya terlebih dahulu.
+2. Siapkan database MySQL menggunakan `database/migrate.php` dari CLI. Atur `SILAKOM_DB_HOST`, `SILAKOM_DB_NAME`, `SILAKOM_DB_USER`, dan `SILAKOM_DB_PASSWORD` untuk koneksi; bila database belum memiliki akun admin, atur juga `SILAKOM_INITIAL_ADMIN_PASSWORD` dengan minimal 16 karakter. Jangan memakai kredensial atau password default.
 3. Buat `config/database.local.php` secara lokal. File ini tidak boleh di-commit dan harus mengembalikan array string dengan kunci `host`, `name`, `user`, dan `password`.
 4. Jalankan aplikasi melalui Apache/PHP lokal, misalnya Laragon, lalu buka `index.php`.
 5. Masuk ke halaman admin melalui tombol **Login** pada board publik.
 
-Jangan gunakan skrip reset pada database produksi. Kredensial admin awal harus segera diganti setelah instalasi.
+Skrip di `database/` hanya boleh dijalankan melalui CLI. Jangan gunakan skrip reset pada database produksi. Petunjuk penanganan kredensial dan deploy aman ada di [docs/security-operations.md](docs/security-operations.md).
 
 ## Alur penggunaan
 
@@ -66,4 +66,4 @@ Daftar pemeriksaan alur browser dan cakupan tes dijelaskan di [docs/testing-chec
 
 ## Deploy
 
-Push ke branch `master` menjalankan tes helper, pemeriksaan sintaks PHP, lalu deploy FTP melalui `.github/workflows/deploy.yml`. Deploy hanya berjalan jika pemeriksaan berhasil. Host, username, dan password FTP harus disediakan sebagai GitHub Actions secrets; jangan simpan rahasia di repository. Alur browser dan database tetap perlu diuji manual di lingkungan pengujian sebelum rilis.
+Push ke branch `master` menjalankan tes helper dan pemeriksaan sintaks PHP. Job deploy dinonaktifkan sampai host mengonfirmasi dukungan FTPS; setelah dikonfirmasi, aktifkan GitHub Actions repository variable `FTPS_DEPLOY_ENABLED=true` dan simpan kredensial deploy hanya sebagai Actions secrets. Workflow memakai FTPS, bukan FTP plaintext. Alur browser dan database tetap perlu diuji manual di lingkungan pengujian sebelum rilis.
