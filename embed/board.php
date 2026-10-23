@@ -2,6 +2,7 @@
 // embed/board.php - Master Template Board Infografis Karantina Kalsel (Format PPT Canva)
 require_once __DIR__ . '/../config/koneksi.php';
 require_once __DIR__ . '/../includes/period_aggregation.php';
+require_once __DIR__ . '/../includes/annual_comparison.php';
 
 $assetPath = $assetPath ?? '';
 $showControls = $show_controls ?? (isset($_GET['nav']) && $_GET['nav'] == 1);
@@ -91,12 +92,7 @@ if (!in_array($periodeB, $periodeOptions, true)) $periodeB = $periodeOptions[cou
 $rentangPeriodeAwal = min($periodeA, $periodeB);
 $rentangPeriodeAkhir = max($periodeA, $periodeB);
 $periodeFilter = $periodeB;
-$yearOptionSet = [];
-foreach ($periodeOptions as $periodOption) {
-    $yearOptionSet[substr($periodOption, 0, 4)] = true;
-}
-$yearOptions = array_keys($yearOptionSet);
-sort($yearOptions, SORT_STRING);
+$yearOptions = published_comparison_years($publishedPeriods);
 $comparisonYearA = trim($_GET['tahun_a'] ?? substr($periodeA, 0, 4));
 $comparisonYearB = trim($_GET['tahun_b'] ?? substr($periodeB, 0, 4));
 if (!in_array($comparisonYearA, $yearOptions, true)) {
@@ -157,38 +153,7 @@ if ($compareMode) {
         ORDER BY periode");
     $trendStmt->execute([$jenis, $kategori, $comparisonYearStart . '-01', $comparisonYearEnd . '-12']);
     $trendRows = $trendStmt->fetchAll();
-    foreach ($comparisonYears as $year) {
-        $comparisonMonthly[$year] = [
-            'nilai' => array_fill(1, 12, 0.0),
-            'volume' => array_fill(1, 12, 0.0),
-            'frekuensi' => array_fill(1, 12, 0),
-            'negara' => array_fill(1, 12, [])
-        ];
-    }
-    foreach ($trendRows as $row) {
-        $year = substr($row['periode'], 0, 4);
-        $month = (int)substr($row['periode'], 5, 2);
-        if (!isset($comparisonMonthly[$year]) || $month < 1 || $month > 12) {
-            continue;
-        }
-        $comparisonMonthly[$year]['nilai'][$month] += (float)$row['nilai_ekspor'];
-        $comparisonMonthly[$year]['volume'][$month] += normalize_compatible_volume_unit($row['volume'], $row['satuan'] ?? '')['volume'];
-        $comparisonMonthly[$year]['frekuensi'][$month] += (int)$row['frekuensi'];
-        $parts = preg_split('/\s*(?:,|;|\/|\|)\s*/', (string)($row['lokasi_tujuan'] ?? ''));
-        foreach ($parts as $country) {
-            $country = trim($country);
-            if ($country !== '') {
-                $comparisonMonthly[$year]['negara'][$month][strtolower($country)] = $country;
-            }
-        }
-    }
-    foreach ($comparisonMonthly as &$yearMetrics) {
-        foreach ($yearMetrics['negara'] as &$countriesByMonth) {
-            $countriesByMonth = count($countriesByMonth);
-        }
-        unset($countriesByMonth);
-    }
-    unset($yearMetrics);
+    $comparisonMonthly = aggregate_comparison_months($comparisonYears, $trendRows);
 }
 
 // Filter kalender: utamakan parameter URL jika ada, jika tidak gunakan setting tersimpan
