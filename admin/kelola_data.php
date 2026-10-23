@@ -131,15 +131,11 @@ $sql .= " ORDER BY is_published DESC, {$urutanKolom} DESC";
 
 $stmtData = $pdo->prepare($sql);
 $stmtData->execute($params);
-$dataItems = $stmtData->fetchAll();
-
-if ($aggregateMode) {
-    $dataItems = aggregate_monthly_period_rows($dataItems);
-    usort($dataItems, static function ($left, $right) use ($urutanKolom) {
-        return ($right[$urutanKolom] <=> $left[$urutanKolom])
-            ?: strcasecmp($left['nama_komoditas'], $right['nama_komoditas']);
-    });
-}
+$dataItems = aggregate_commodity_rows($stmtData->fetchAll(PDO::FETCH_ASSOC));
+usort($dataItems, static function ($left, $right) use ($urutanKolom) {
+    return ($right[$urutanKolom] <=> $left[$urutanKolom])
+        ?: strcasecmp($left['nama_komoditas'], $right['nama_komoditas']);
+});
 
 // Hitung statistik
 $totalItem = count($dataItems);
@@ -383,8 +379,10 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
                                     <tr class="<?= $row['is_published'] ? 'is-published' : '' ?>">
                                         <td style="text-align: center;">
                                             <?php if (!$aggregateMode): ?>
-                                                <input type="hidden" form="formUpdatePublik" name="all_ids[]" value="<?= $row['id'] ?>">
-                                                <input type="checkbox" form="formUpdatePublik" name="published_ids[]" value="<?= $row['id'] ?>" <?= $row['is_published'] ? 'checked' : '' ?> class="item-checkbox">
+                                                <?php foreach ($row['_source_ids'] as $sourceId): ?>
+                                                    <input type="hidden" form="formUpdatePublik" name="all_ids[]" value="<?= (int)$sourceId ?>">
+                                                <?php endforeach; ?>
+                                                <input type="checkbox" form="formUpdatePublik" name="published_groups[]" value="<?= htmlspecialchars(implode(',', $row['_source_ids']), ENT_QUOTES, 'UTF-8') ?>" <?= $row['is_published'] ? 'checked' : '' ?> class="item-checkbox">
                                             <?php endif; ?>
                                         </td>
                                         <td><?= htmlspecialchars($row['klasifikasi'] ?? '-') ?></td>
@@ -414,7 +412,7 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
                                             <?= htmlspecialchars($row['negara_tujuan'] ?? '-') ?>
                                         </td>
                                         <td style="text-align: center; white-space: nowrap;">
-                                            <?php if ($aggregateMode && $row['publication_status'] === 'Campuran'): ?>
+                                            <?php if ($row['publication_status'] === 'Campuran'): ?>
                                                 <span class="badge badge-neutral" style="background: #fff4d6; color: #795400;">Campuran</span>
                                             <?php elseif ($row['is_published']): ?>
                                                 <span class="badge badge-brand">Published</span>
@@ -424,14 +422,16 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
                                         </td>
                                         <td style="text-align: center; white-space: nowrap;">
                                             <?php if (!$aggregateMode): ?>
-                                            <a href="edit_data.php?id=<?= $row['id'] ?>"
+                                            <?php if (count($row['_source_ids']) === 1): ?>
+                                            <a href="edit_data.php?id=<?= (int)$row['_source_ids'][0] ?>"
                                                 style="color: var(--brand); display: inline-flex; padding: 4px;" title="Edit">
                                                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                                             </a>
+                                            <?php endif; ?>
                                             <form method="POST" action="hapus_data.php" style="display: inline;" data-confirm="Hapus komoditas ini?" data-confirm-tone="danger">
                                                 <?= csrf_field() ?>
-                                                <input type="hidden" name="action" value="single">
-                                                <input type="hidden" name="id" value="<?= (int)$row['id'] ?>">
+                                                <input type="hidden" name="action" value="group_ids">
+                                                <input type="hidden" name="ids" value="<?= htmlspecialchars(implode(',', $row['_source_ids']), ENT_QUOTES, 'UTF-8') ?>">
                                                 <input type="hidden" name="jenis" value="<?= htmlspecialchars($jenis) ?>">
                                                 <input type="hidden" name="kategori" value="<?= htmlspecialchars($kategori) ?>">
                                                 <input type="hidden" name="periode" value="<?= htmlspecialchars($row['periode'] ?? '') ?>">

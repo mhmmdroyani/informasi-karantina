@@ -54,10 +54,7 @@ $stmt = $pdo->prepare(
      ORDER BY is_published DESC, nilai_ekspor DESC, frekuensi DESC'
 );
 $stmt->execute([$jenis, $kategori, $rangeStart, $rangeEnd]);
-$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-if ($rangeStart !== $rangeEnd) {
-    $rows = aggregate_monthly_period_rows($rows);
-}
+$rows = aggregate_commodity_rows($stmt->fetchAll(PDO::FETCH_ASSOC));
 
 $labelKegiatan = get_label_kegiatan($jenis);
 $labelKategori = strtoupper($kategori);

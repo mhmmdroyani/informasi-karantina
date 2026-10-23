@@ -1,7 +1,7 @@
 <?php
 // embed/board.php - Master Template Board Infografis Karantina Kalsel (Format PPT Canva)
 require_once __DIR__ . '/../config/koneksi.php';
-require_once __DIR__ . '/../includes/volume_units.php';
+require_once __DIR__ . '/../includes/period_aggregation.php';
 
 $assetPath = $assetPath ?? '';
 $showControls = $show_controls ?? (isset($_GET['nav']) && $_GET['nav'] == 1);
@@ -233,42 +233,7 @@ $allMonthlyData = $stmtData->fetchAll();
 
 $allData = $allMonthlyData;
 if (!$comparisonPage) {
-    $groupedData = [];
-    foreach ($allMonthlyData as $row) {
-        $commodityKey = strtolower(preg_replace('/\s+/', ' ', trim((string)$row['nama_komoditas'])));
-        $normalizedVolume = normalize_compatible_volume_unit($row['volume'], $row['satuan'] ?? '');
-        $unit = $normalizedVolume['unit'];
-        $groupKey = $commodityKey . "\0" . strtolower(preg_replace('/\s+/', ' ', $unit));
-        if (!isset($groupedData[$groupKey])) {
-            $row['satuan'] = $unit;
-            $row['_selection_key'] = hash('sha256', $groupKey);
-            $row['frekuensi'] = (int)$row['frekuensi'];
-            $row['volume'] = $normalizedVolume['volume'];
-            $row['nilai_ekspor'] = (float)$row['nilai_ekspor'];
-            foreach (['daerah_asal', 'daerah_tujuan', 'negara_tujuan'] as $field) {
-                $row[$field] = array_filter(array_map('trim', preg_split('/\s*(?:,|;|\/|\|)\s*/', (string)($row[$field] ?? ''))));
-            }
-            $groupedData[$groupKey] = $row;
-            continue;
-        }
-
-        $groupedData[$groupKey]['frekuensi'] += (int)$row['frekuensi'];
-        $groupedData[$groupKey]['volume'] += $normalizedVolume['volume'];
-        $groupedData[$groupKey]['nilai_ekspor'] += (float)$row['nilai_ekspor'];
-        foreach (['daerah_asal', 'daerah_tujuan', 'negara_tujuan'] as $field) {
-            $values = array_filter(array_map('trim', preg_split('/\s*(?:,|;|\/|\|)\s*/', (string)($row[$field] ?? ''))));
-            $groupedData[$groupKey][$field] = array_merge($groupedData[$groupKey][$field], $values);
-        }
-    }
-
-    foreach ($groupedData as &$row) {
-        foreach (['daerah_asal', 'daerah_tujuan', 'negara_tujuan'] as $field) {
-            $row[$field] = implode(', ', array_values(array_unique($row[$field])));
-        }
-    }
-    unset($row);
-
-    $allData = array_values($groupedData);
+    $allData = aggregate_commodity_rows($allMonthlyData);
     usort($allData, static function ($left, $right) use ($urutan) {
         $primary = (float)$right[$urutan] <=> (float)$left[$urutan];
         if ($primary !== 0) {
@@ -358,7 +323,11 @@ $destCounts = [];
 $destCountsBySelection = [];
 foreach ($allMonthlyData as $r) {
     $normalizedVolume = normalize_compatible_volume_unit($r['volume'], $r['satuan'] ?? '');
-    $commodityKey = strtolower(preg_replace('/\s+/', ' ', trim((string)$r['nama_komoditas'])));
+    $commodityKey = strtolower(preg_replace(
+        '/\s+/',
+        ' ',
+        normalize_commodity_group_name($r['nama_komoditas'] ?? '')
+    ));
     $unitKey = strtolower(preg_replace('/\s+/', ' ', $normalizedVolume['unit']));
     $selectionKey = hash('sha256', $commodityKey . "\0" . $unitKey);
     if (!empty($r[$fieldTujuan])) {

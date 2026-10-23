@@ -23,6 +23,11 @@ if ($action === 'batch_ids') {
     }
 
     $ids = isset($_POST['published_ids']) && is_array($_POST['published_ids']) ? array_map('intval', $_POST['published_ids']) : [];
+    foreach (isset($_POST['published_groups']) && is_array($_POST['published_groups']) ? $_POST['published_groups'] : [] as $groupIds) {
+        foreach (explode(',', (string)$groupIds) as $groupId) {
+            $ids[] = (int)$groupId;
+        }
+    }
     $ids = array_values(array_unique(array_filter($ids, static function ($id) {
         return $id > 0;
     })));
@@ -68,7 +73,29 @@ $periode = $_POST['periode'] ?? '';
 $periodeA = trim($_POST['periode_a'] ?? $periode);
 $periodeB = trim($_POST['periode_b'] ?? $periode);
 
-if ($action === 'single') {
+if ($action === 'group_ids') {
+    $ids = array_values(array_unique(array_filter(
+        array_map('intval', explode(',', (string)($_POST['ids'] ?? ''))),
+        static function ($id) {
+            return $id > 0;
+        }
+    )));
+    if ($ids !== []) {
+        if (!preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $periode)) {
+            http_response_code(400);
+            exit('Periode data tidak valid.');
+        }
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $stmt = $pdo->prepare(
+            "DELETE FROM ekspor_komoditas
+             WHERE id IN ($placeholders)
+               AND jenis_kegiatan = ?
+               AND kategori = ?
+               AND periode = ?"
+        );
+        $stmt->execute(array_merge($ids, [$jenis, $kategori, $periode]));
+    }
+} elseif ($action === 'single') {
     $id = (int)($_POST['id'] ?? 0);
     if ($id > 0) {
         $stmt = $pdo->prepare("DELETE FROM ekspor_komoditas WHERE id = ?");

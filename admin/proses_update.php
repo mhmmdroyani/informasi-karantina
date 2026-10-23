@@ -40,7 +40,16 @@ if (empty($periodeLabel)) {
 }
 
 $allIds = isset($_POST['all_ids']) && is_array($_POST['all_ids']) ? array_map('intval', $_POST['all_ids']) : [];
-$publishedIds = isset($_POST['published_ids']) && is_array($_POST['published_ids']) ? array_map('intval', $_POST['published_ids']) : [];
+$publishedIds = isset($_POST['published_ids']) && is_array($_POST['published_ids'])
+    ? array_map('intval', $_POST['published_ids'])
+    : [];
+foreach (isset($_POST['published_groups']) && is_array($_POST['published_groups']) ? $_POST['published_groups'] : [] as $groupIds) {
+    foreach (explode(',', (string)$groupIds) as $groupId) {
+        $publishedIds[] = (int)$groupId;
+    }
+}
+$allIds = array_values(array_unique(array_filter($allIds, static fn($id) => $id > 0)));
+$publishedIds = array_values(array_unique(array_filter($publishedIds, static fn($id) => $id > 0)));
 
 try {
     $pdo->beginTransaction();
