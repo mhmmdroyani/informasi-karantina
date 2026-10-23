@@ -179,7 +179,7 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="admin.css?v=<?= @filemtime(__DIR__ . '/admin.css') ?: time() ?>">
 </head>
-<body>
+<body class="page-kelola-data">
     <?php require 'navbar.php'; ?>
 
     <div class="admin-main">
@@ -315,7 +315,11 @@ if ($jenis === 'domestik_keluar' || $jenis === 'domestik_masuk') {
         </form>
 
             <!-- Tabel Data Komoditas -->
-            <div class="card" style="margin-top: 20px; overflow: hidden;">
+            <div class="kelola-data-print-header">
+                <h1>Data Komoditas Karantina</h1>
+                <p><?= htmlspecialchars($labelKegiatan) ?> &bull; <?= htmlspecialchars(ucfirst($kategori)) ?> &bull; <?= htmlspecialchars($rangePeriodLabel) ?></p>
+            </div>
+            <div class="card kelola-data-table-card" style="margin-top: 20px; overflow: hidden;">
                 <!-- Toolbar Tabel -->
                  
                 <div style="padding: 14px 18px; background: var(--bg); border-bottom: 1px solid var(--line); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; font-size: 12px;">
